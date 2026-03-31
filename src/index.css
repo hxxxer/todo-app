@@ -6,39 +6,60 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
+  /* 基础背景/前景：高对比度，适配主色调 */
+  --background: oklch(1 0 175);    /* 极浅的青蓝色底，比纯白更柔和 */
+  --foreground: oklch(0.12 0.02 175);    /* 深青灰文字，比纯黑更温润 */
+  
+  /* 卡片/浮层：与背景区分但统一色调 */
+  --card: oklch(1 0 175);                /* 纯白卡片，突出内容 */
+  --card-foreground: oklch(0.12 0.02 175);/* 同前景色，保证一致性 */
+  --popover: oklch(1 0 175);             /* 浮层背景 */
+  --popover-foreground: oklch(0.12 0.02 175);/* 浮层文字 */
+  
+  /* 主色：你指定的核心色 */
+  --primary: oklch(0.7 0.13 175);        /* 核心青蓝色 */
+  --primary-foreground: oklch(1 0 175);/* 主色上的文字（纯白，保证可读性） */
+  
+  /* 次要色：主色的低饱和版，用于辅助元素 */
+  --secondary: oklch(0.88 0.06 175);     /* 浅青蓝，比主色淡，用于次要按钮/标签 */
+  --secondary-foreground: oklch(0.12 0.02 175);/* 次要色文字 */
+  
+  /* 弱化色：用于注释/次要信息 */
+  --muted: oklch(0.92 0.03 175);         /* 极浅青灰，用于分割/占位 */
+  --muted-foreground: oklch(0.45 0.04 175);/* 浅灰文字，用于辅助说明 */
+  
+  /* 强调色：主色的高饱和版，用于突出交互 */
+  --accent: oklch(0.75 0.15 175);        /* 更亮的青蓝色，用于hover/选中态 */
+  --accent-foreground: oklch(0.98 0 175);/* 强调色文字 */
+  
+  /* 危险色：与主色协调的红色调，不突兀 */
+  --destructive: oklch(0.65 0.2 20);     /* 低饱和红，避免刺眼 */
+  --destructive-foreground: oklch(0.98 0 0);/* 危险色文字（纯白） */
+  
+  /* 边框/输入框：轻量级分割线 */
+  --border: oklch(0.9 0.04 175);         /* 浅青灰边框，比纯灰更协调 */
+  --input: oklch(0.9 0.04 175);          /* 输入框边框/背景 */
+  --ring: oklch(0.7 0.13 175);           /* 聚焦环，直接用主色，强化交互反馈 */
+  
+  /* 图表色：基于主色的同色系渐变，保证视觉统一 */
+  --chart-1: oklch(0.78 0.14 160);       /* 偏蓝的青 */
+  --chart-2: oklch(0.7 0.13 175);        /* 主色 */
+  --chart-3: oklch(0.65 0.14 190);       /* 偏绿的青 */
+  --chart-4: oklch(0.82 0.12 155);       /* 更浅的蓝青 */
+  --chart-5: oklch(0.6 0.15 205);        /* 更深的绿青 */
+  
+  /* 圆角/布局 */
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  
+  /* 侧边栏：独立但统一的色调 */
+  --sidebar: oklch(0.99 0.01 175);       /* 侧边栏背景，比主背景稍白 */
+  --sidebar-foreground: oklch(0.12 0.02 175);/* 侧边栏文字 */
+  --sidebar-primary: oklch(0.7 0.13 175);/* 侧边栏主色（同全局主色） */
+  --sidebar-primary-foreground: oklch(0.98 0 175);/* 侧边栏主色文字 */
+  --sidebar-accent: oklch(0.88 0.06 175);/* 侧边栏强调色（同全局次要色） */
+  --sidebar-accent-foreground: oklch(0.12 0.02 175);/* 侧边栏强调色文字 */
+  --sidebar-border: oklch(0.9 0.04 175); /* 侧边栏边框（同全局边框） */
+  --sidebar-ring: oklch(0.7 0.13 175);   /* 侧边栏聚焦环（同全局主色） */
 }
 
 .dark {
@@ -128,5 +149,10 @@
   }
   html {
     @apply font-sans;
+  }
+  /* 自定义文本选中颜色：浅蓝色 */
+  ::selection {
+    background-color: oklch(0.8 0.08 242);
+    color: oklch(0.12 0.02 175);
   }
 }

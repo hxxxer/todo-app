@@ -1,20 +1,23 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "todo-app",
-  "version": "0.1.0",
+  "productName": "TodoApp",
+  "version": "1.4.2",
   "identifier": "com.tauri-app.todo-app",
   "build": {
     "beforeDevCommand": "pnpm dev",
-    "devUrl": "http://localhost:1420",
+    "devUrl": "http://localhost:5177",
     "beforeBuildCommand": "pnpm build",
     "frontendDist": "../dist"
   },
   "app": {
     "windows": [
       {
-        "title": "todo-app",
-        "width": 800,
-        "height": 600
+        "title": "TodoApp",
+        "width": 1200,
+        "height": 800,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true
       }
     ],
     "security": {
@@ -30,6 +33,17 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "windows": {
+      "wix": null,
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
+  },
+  "plugins": {
+    "shell": {
+      "open": true
+    }
   }
 }
