@@ -194,24 +194,24 @@ export function CalendarPage({ onNavigateToKnowledge }: CalendarPageProps) {
   };
 
   // 关联文档到待办（支持多选）
-  const handleLinkDocuments = async (todoId: number, documentTitles: string[]) => {
+  const handleLinkDocuments = async (todoId: number, documentIds: number[]) => {
     try {
-      // 获取当前已关联的文档标题列表
+      // 获取当前已关联的文档 ID 列表
       const currentLinkedDocs = linkedDocsMap.get(todoId) || [];
-      const currentLinkedTitles = currentLinkedDocs.map(d => d.title);
+      const currentLinkedIds = currentLinkedDocs.map(d => d.id);
 
-      // 计算需要新增和删除的文档标题
-      const titlesToAdd = documentTitles.filter(title => !currentLinkedTitles.includes(title));
-      const titlesToRemove = currentLinkedTitles.filter(title => !documentTitles.includes(title));
+      // 计算需要新增和删除的文档 ID
+      const idsToAdd = documentIds.filter(id => !currentLinkedIds.includes(id));
+      const idsToRemove = currentLinkedIds.filter(id => !documentIds.includes(id));
 
       // 执行关联操作
-      for (const title of titlesToAdd) {
-        await linkDocumentToTodo(todoId, title);
+      for (const id of idsToAdd) {
+        await linkDocumentToTodo(todoId, id);
       }
 
       // 执行取消关联操作
-      for (const title of titlesToRemove) {
-        await unlinkDocumentFromTodo(todoId, title);
+      for (const id of idsToRemove) {
+        await unlinkDocumentFromTodo(todoId, id);
       }
 
       // 更新关联文档列表
@@ -229,9 +229,9 @@ export function CalendarPage({ onNavigateToKnowledge }: CalendarPageProps) {
   };
 
   // 取消关联文档
-  const handleUnlinkDocument = async (todoId: number, documentTitle: string) => {
+  const handleUnlinkDocument = async (todoId: number, documentId: number) => {
     try {
-      await unlinkDocumentFromTodo(todoId, documentTitle);
+      await unlinkDocumentFromTodo(todoId, documentId);
       // 只更新这个待办的关联文档
       const updated = await getLinkedDocuments(todoId);
       setLinkedDocsMap(prev => new Map(prev).set(todoId, updated));
@@ -241,11 +241,9 @@ export function CalendarPage({ onNavigateToKnowledge }: CalendarPageProps) {
   };
 
   // 跳转到文档页面
-  const handleNavigateToDocument = (docTitle: string) => {
-    // 根据标题查找文档 ID
-    const doc = allDocs.find(d => d.title === docTitle);
-    if (doc && onNavigateToKnowledge) {
-      onNavigateToKnowledge(doc.id);
+  const handleNavigateToDocument = (docId: number) => {
+    if (onNavigateToKnowledge) {
+      onNavigateToKnowledge(docId);
     }
   };
 
@@ -340,8 +338,8 @@ export function CalendarPage({ onNavigateToKnowledge }: CalendarPageProps) {
               
               {/* 新建待办对话框 */}
               <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogTrigger>
-                  <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>新建待办</Button>
+                <DialogTrigger asChild>
+                  <Button size="sm">新建待办</Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
@@ -471,7 +469,7 @@ export function CalendarPage({ onNavigateToKnowledge }: CalendarPageProps) {
                                     variant="ghost"
                                     size="icon"
                                     className="h-5 w-5"
-                                    onClick={() => handleNavigateToDocument(doc.title)}
+                                    onClick={() => handleNavigateToDocument(doc.id)}
                                     title="跳转到文档"
                                   >
                                     <ExternalLink className="h-3 w-3" />
@@ -480,7 +478,7 @@ export function CalendarPage({ onNavigateToKnowledge }: CalendarPageProps) {
                                     variant="ghost"
                                     size="icon"
                                     className="h-5 w-5"
-                                    onClick={() => handleUnlinkDocument(todo.id, doc.title)}
+                                    onClick={() => handleUnlinkDocument(todo.id, doc.id)}
                                     title="断开关联"
                                   >
                                     <Unlink className="h-3 w-3" />
@@ -527,10 +525,10 @@ export function CalendarPage({ onNavigateToKnowledge }: CalendarPageProps) {
         open={isDocSelectorOpen}
         onOpenChange={setIsDocSelectorOpen}
         documents={allDocs}
-        selectedDocumentTitles={currentTodoIdForLink ? (linkedDocsMap.get(currentTodoIdForLink)?.map(d => d.title) || []) : []}
-        onConfirm={(titles) => {
+        selectedDocumentIds={currentTodoIdForLink ? (linkedDocsMap.get(currentTodoIdForLink)?.map(d => d.id) || []) : []}
+        onConfirm={(ids) => {
           if (currentTodoIdForLink) {
-            handleLinkDocuments(currentTodoIdForLink, titles);
+            handleLinkDocuments(currentTodoIdForLink, ids);
           }
         }}
       />

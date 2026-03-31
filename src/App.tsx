@@ -7,11 +7,12 @@ import { useState } from "react";
 import { CalendarPage } from "./CalendarPage";
 import { KnowledgePage } from "./KnowledgePage";
 import { AllTodosPage } from "./AllTodosPage";
-import { CalendarIcon, BookIcon, ListTodoIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { WebDavSettings } from "./WebDavSettingsPage";
+import { CalendarIcon, BookIcon, ListTodoIcon, Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // 页面类型定义
-type Page = "calendar" | "all-todos" | "knowledge";
+type Page = "calendar" | "all-todos" | "knowledge" | "webdav";
 
 export default function App() {
   // ============================================
@@ -52,7 +53,7 @@ export default function App() {
       <div
         className={cn(
           "flex flex-col border-r transition-all duration-300 ease-in-out",
-          isCollapsed ? "w-16" : "w-56"
+          isCollapsed ? "w-15" : "w-56"
         )}
       >
         {/* 侧边栏头部 */}
@@ -123,6 +124,21 @@ export default function App() {
               <BookIcon className="h-5 w-5 flex-shrink-0" />  {/* 书本图标 */}
               {!isCollapsed && <span>知识库</span>}
             </button>
+
+            {/* WebDAV 设置按钮 */}
+            <button
+              onClick={() => setCurrentPage("webdav")}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors",
+                currentPage === "webdav"
+                  ? "bg-accent text-accent-foreground"
+                  : "hover:bg-accent/50"
+              )}
+              title="WebDAV 同步"
+            >
+              <Settings className="h-5 w-5 flex-shrink-0" />
+              {!isCollapsed && <span>WebDAV 同步</span>}
+            </button>
           </nav>
         </div>
 
@@ -132,7 +148,7 @@ export default function App() {
             "text-xs text-muted-foreground text-center",
             !isCollapsed && "text-left"
           )}>
-            {!isCollapsed && "TodoApp v1.4.2"}  {/* 版本号（仅展开时显示） */}
+            {!isCollapsed && "TodoApp v1.6.0"}  {/* 版本号（仅展开时显示） */}
           </div>
         </div>
       </div>
@@ -144,11 +160,13 @@ export default function App() {
           <CalendarPage onNavigateToKnowledge={handleNavigateToKnowledge} />
         ) : currentPage === "all-todos" ? (
           <AllTodosPage />
-        ) : (
-          <KnowledgePage 
+        ) : currentPage === "knowledge" ? (
+          <KnowledgePage
             selectedDocumentId={selectedKnowledgeDocId}
             onDocumentSelected={setSelectedKnowledgeDocId}
           />
+        ) : (
+          <WebDavSettings />
         )}
       </main>
     </div>

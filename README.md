@@ -2,7 +2,7 @@
 
 一个基于 Tauri v2 + React 19 开发的桌面待办清单工具，集成了日历、待办管理和知识库三大核心功能。
 
-![版本](https://img.shields.io/badge/version-v1.4.2-blue)
+![版本](https://img.shields.io/badge/version-v1.6.0-blue)
 ![Tauri](https://img.shields.io/badge/Tauri-v2-blue)
 ![React](https://img.shields.io/badge/React-v19-blue)
 ![Rust](https://img.shields.io/badge/Rust-stable-orange)
@@ -32,6 +32,12 @@
 - **外部编辑器**：支持使用系统默认程序打开 .md 文件
 - **文档关联**：可与待办事项关联
 
+### ☁️ WebDAV 同步
+- **配置管理**：保存 WebDAV 服务器地址、账号、密码和远程路径
+- **上传/下载**：手动上传或下载数据库文件
+- **连接测试**：测试 WebDAV 服务器连接是否正常
+- **自动备份**：下载前自动备份本地数据库
+
 ## 🛠️ 技术栈
 
 | 层级 | 技术 |
@@ -45,7 +51,6 @@
 ## TODO
 
 - [ ] 安卓移植
-- [ ] 多端数据同步
 
 ## 📦 安装和编译
 
@@ -133,11 +138,6 @@ todo-app/
 C:\Users\{用户名}\AppData\Roaming\com.tauri-app.todo-app\todo_app.db
 ```
 
-### 知识库文件位置
-```
-C:\Users\{用户名}\AppData\Roaming\com.tauri-app.todo-app\knowledge\{标题}.md
-```
-
 ### 数据库表结构
 
 **todos 表**
@@ -151,11 +151,20 @@ C:\Users\{用户名}\AppData\Roaming\com.tauri-app.todo-app\knowledge\{标题}.m
 | completed | INTEGER | 完成状态 (0/1) |
 | created_at | TEXT | 创建时间 |
 
+**documents 表**
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | INTEGER | 主键 |
+| title | TEXT | 文档标题（唯一） |
+| content | TEXT | 文档内容 |
+| created_at | TEXT | 创建时间 |
+| updated_at | TEXT | 最后修改时间 |
+
 **todo_documents 表**
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | todo_id | INTEGER | 待办 ID |
-| document_title | TEXT | 文档标题 |
+| document_id | INTEGER | 文档 ID |
 
 ## 🎯 使用指南
 
@@ -185,24 +194,44 @@ C:\Users\{用户名}\AppData\Roaming\com.tauri-app.todo-app\knowledge\{标题}.m
 
 ## 📝 更新日志
 
-### v1.4.x
+### v1.6.0
+- ✅ 添加 WebDAV 数据同步功能
+- ✅ 支持配置 WebDAV 服务器地址、账号、密码和远程路径
+- ✅ 支持上传/下载数据库文件
+- ✅ 支持连接测试
+- ✅ 下载前自动备份本地数据库
+- ✅ 新增 Label 组件
+- ✅ 优化 DialogTrigger 组件，支持 asChild 属性
+
+### v1.5.0
+- ✅ 关联表改为使用 `document_id`（更规范的外键关联）
+- ✅ 添加表结构自动检查，不正确时自动重建
+- ✅ 文档选择器改为使用 ID 传递
+- ✅ 移除外部编辑器功能（保留代码供将来扩展）
+
+### v1.4.2
+- ✅ 文档存储方式改回 SQLite 数据库（便于坚果云同步）
+- ✅ 添加 documents 表存储文档内容
+- ✅ 优化数据库表结构
+
+### v1.4.0
 - ✅ 添加编辑备注功能（两个页面）
 - ✅ 优化 UI 布局，删除和编辑按钮对齐
 
-### v1.3.x
+### v1.3.0
 - ✅ 所有待办页面添加隐藏已完成功能
 - ✅ 知识库页面文档列表按时间排序和分组显示
 
-### v1.2.x
+### v1.2.0
 - ✅ 添加年视图日历功能
 - ✅ 待办关联文档功能
 - ✅ 文档多选弹窗
 
-### v1.1.x
+### v1.1.0
 - ✅ 知识库存储方式改为 .md 文件
 - ✅ 支持外部编辑器打开文档
 
-### v1.0.x
+### v1.0.0
 - ✅ 初始版本发布
 
 ## 📄 许可证

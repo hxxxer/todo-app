@@ -15,8 +15,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Document, createDocument, listDocuments, updateDocument, deleteDocument, openDocumentWithEditor } from "@/lib/commands";
-import { Trash2, Plus, ExternalLink } from "lucide-react";
+import { Document, createDocument, listDocuments, updateDocument, deleteDocument } from "@/lib/commands";
+import { Trash2, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -138,9 +138,14 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
     try {
       await updateDocument(selectedDoc.id, editTitle, editContent);
       // 重新加载文档列表以获取最新信息
-      await loadDocuments();
-      // 更新选中状态
-      const updatedDoc = documents.find(d => d.title === (editTitle || selectedDoc.title));
+      const docs = await listDocuments();
+      // 按最后修改时间倒序排序
+      const sorted = docs.sort((a, b) => {
+        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      });
+      setDocuments(sorted);
+      // 使用 ID 查找更新后的文档（因为标题可能已更改）
+      const updatedDoc = sorted.find(d => d.id === selectedDoc.id);
       if (updatedDoc) {
         setSelectedDoc(updatedDoc);
         setEditTitle(updatedDoc.title);
@@ -181,8 +186,8 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
           
           {/* 新建文档对话框 */}
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger>
-              <Button size="icon" onClick={() => setIsCreateDialogOpen(true)}>
+            <DialogTrigger asChild>
+              <Button size="icon">
                 <Plus className="h-4 w-4" />  {/* 加号图标 */}
               </Button>
             </DialogTrigger>
@@ -295,19 +300,19 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
 
               {/* 操作按钮 */}
               <div className="flex gap-2">
-                {/* 用 Notepad4 打开 */}
-                <Button
+                {/* 用 Notepad4 打开（暂未启用） */}
+                {/* <Button
                   variant="outline"
                   onClick={() => openDocumentWithEditor(selectedDoc.id)}
                   title="用外部编辑器打开"
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
                   用 Notepad4 打开
-                </Button>
-                
+                </Button> */}
+
                 {/* 保存按钮 */}
                 <Button onClick={handleSaveDocument}>保存</Button>
-                
+
                 {/* 删除按钮 */}
                 <Button
                   variant="destructive"

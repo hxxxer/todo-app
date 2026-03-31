@@ -1,5 +1,7 @@
 mod commands;
 mod document_commands;
+mod webdav_config;
+mod webdav_sync;
 
 use commands::AppState;
 use tauri::Manager;
@@ -29,12 +31,19 @@ pub fn run() {
             document_commands::get_document,
             document_commands::update_document,
             document_commands::delete_document,
-            document_commands::open_document_with_editor,
             document_commands::get_all_documents_for_selection,
             commands::link_document_to_todo,
             commands::unlink_document_from_todo,
             commands::get_linked_documents,
-            commands::get_todos_count_by_month
+            commands::get_todos_count_by_month,
+            webdav_config::get_webdav_config,
+            webdav_config::save_webdav_config,
+            webdav_config::delete_webdav_config,
+            webdav_config::test_webdav_connection,
+            webdav_sync::upload_to_webdav,
+            webdav_sync::download_from_webdav,
+            webdav_sync::sync_with_webdav,
+            webdav_sync::get_sync_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -145,9 +145,9 @@ export async function deleteDocument(id: number): Promise<void> {
  */
 export async function linkDocumentToTodo(
   todoId: number,
-  documentTitle: string
+  documentId: number
 ): Promise<void> {
-  return invoke<void>("link_document_to_todo", { todoId, documentTitle });
+  return invoke<void>("link_document_to_todo", { todoId, documentId });
 }
 
 /**
@@ -155,9 +155,9 @@ export async function linkDocumentToTodo(
  */
 export async function unlinkDocumentFromTodo(
   todoId: number,
-  documentTitle: string
+  documentId: number
 ): Promise<void> {
-  return invoke<void>("unlink_document_from_todo", { todoId, documentTitle });
+  return invoke<void>("unlink_document_from_todo", { todoId, documentId });
 }
 
 /**
@@ -188,8 +188,92 @@ export async function getTodosCountByMonth(
 }
 
 /**
- * 用外部编辑器打开文档
+ * 用外部编辑器打开文档（暂未启用）
  */
-export async function openDocumentWithEditor(id: number): Promise<void> {
-  return invoke<void>("open_document_with_editor", { id });
+// export async function openDocumentWithEditor(id: number): Promise<void> {
+//   return invoke<void>("open_document_with_editor", { id });
+// }
+
+// ============================================
+// WebDAV 同步 API
+// ============================================
+
+/**
+ * WebDAV 配置接口
+ */
+export interface WebDavConfig {
+  server_url: string;     // 服务器地址
+  username: string;       // 用户名
+  password: string;       // 密码
+  remote_path: string;    // 远程文件夹路径
+}
+
+/**
+ * 同步状态接口
+ */
+export interface SyncStatus {
+  is_syncing: boolean;
+  last_sync_time: string | null;
+  last_sync_result: string | null;
+}
+
+/**
+ * 获取 WebDAV 配置
+ */
+export async function getWebDavConfig(): Promise<WebDavConfig | null> {
+  return invoke<WebDavConfig | null>("get_webdav_config");
+}
+
+/**
+ * 保存 WebDAV 配置
+ */
+export async function saveWebDavConfig(
+  serverUrl: string,
+  username: string,
+  password: string,
+  remotePath: string
+): Promise<void> {
+  return invoke<void>("save_webdav_config", { serverUrl, username, password, remotePath });
+}
+
+/**
+ * 删除 WebDAV 配置
+ */
+export async function deleteWebDavConfig(): Promise<void> {
+  return invoke<void>("delete_webdav_config");
+}
+
+/**
+ * 测试 WebDAV 连接
+ */
+export async function testWebDavConnection(): Promise<string> {
+  return invoke<string>("test_webdav_connection");
+}
+
+/**
+ * 上传到 WebDAV
+ */
+export async function uploadToWebDav(): Promise<string> {
+  return invoke<string>("upload_to_webdav");
+}
+
+/**
+ * 从 WebDAV 下载
+ */
+export async function downloadFromWebDav(): Promise<string> {
+  return invoke<string>("download_from_webdav");
+}
+
+/**
+ * 同步到 WebDAV
+ */
+export async function syncWithWebDav(): Promise<string> {
+  return invoke<string>("sync_with_webdav");
+}
+
+/**
+ * 获取同步状态
+ */
+export async function getSyncStatus(): Promise<SyncStatus> {
+  return invoke<SyncStatus>("get_sync_status");
 }

@@ -88,7 +88,19 @@ fn init_database(conn: &Connection) -> Result<(), DbError> {
         }
     }
 
-    // 使用 PRAGMA 检查表结构
+    // 创建 documents 表（存储文档内容）
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS documents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL UNIQUE,
+            content TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )",
+        [],
+    )?;
+
+    // 使用 PRAGMA 检查 todo_documents 表结构
     let table_exists: bool = conn.query_row(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='todo_documents'",
         [],
@@ -105,21 +117,22 @@ fn init_database(conn: &Connection) -> Result<(), DbError> {
                 row.get::<_, i32>(3)?,    // notnull
             ))
         })?.collect::<Result<Vec<_>, _>>()?;
-        
+
         let expected_columns = vec![
             ("todo_id".to_string(), "INTEGER".to_string(), 1),
-            ("document_title".to_string(), "TEXT".to_string(), 1),
+            ("document_id".to_string(), "INTEGER".to_string(), 1),
         ];
-        
+
         // 如果列数不匹配或列定义不匹配，则删除重建
         if columns.len() != 2 || columns != expected_columns {
             conn.execute("DROP TABLE todo_documents", [])?;
             conn.execute(
                 "CREATE TABLE todo_documents (
                     todo_id INTEGER NOT NULL,
-                    document_title TEXT NOT NULL,
-                    PRIMARY KEY (todo_id, document_title),
-                    FOREIGN KEY (todo_id) REFERENCES todos(id) ON DELETE CASCADE
+                    document_id INTEGER NOT NULL,
+                    PRIMARY KEY (todo_id, document_id),
+                    FOREIGN KEY (todo_id) REFERENCES todos(id) ON DELETE CASCADE,
+                    FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
                 )",
                 [],
             )?;
@@ -129,9 +142,10 @@ fn init_database(conn: &Connection) -> Result<(), DbError> {
         conn.execute(
             "CREATE TABLE todo_documents (
                 todo_id INTEGER NOT NULL,
-                document_title TEXT NOT NULL,
-                PRIMARY KEY (todo_id, document_title),
-                FOREIGN KEY (todo_id) REFERENCES todos(id) ON DELETE CASCADE
+                document_id INTEGER NOT NULL,
+                PRIMARY KEY (todo_id, document_id),
+                FOREIGN KEY (todo_id) REFERENCES todos(id) ON DELETE CASCADE,
+                FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
             )",
             [],
         )?;
@@ -330,29 +344,16 @@ pub fn delete_todo(state: tauri::State<AppState>, id: i64) -> Result<(), String>
 
 // ==================== Todo-Document 关联命令 ====================
 
-/// 清理文件名中的非法字符
-fn sanitize_filename(title: &str) -> String {
-    title
-        .chars()
-        .map(|c| match c {
-            '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*' => '_',
-            _ => c,
-        })
-        .collect::<String>()
-        .trim()
-        .to_string()
-}
-
 #[tauri::command]
 pub fn link_document_to_todo(
     state: tauri::State<AppState>,
     todo_id: i64,
-    document_title: String,
+    document_id: i64,
 ) -> Result<(), String> {
     let db = state.db.lock().map_err(|e| e.to_string())?;
     db.execute(
-        "INSERT OR IGNORE INTO todo_documents (todo_id, document_title) VALUES (?1, ?2)",
-        params![todo_id, document_title],
+        "INSERT OR IGNORE INTO todo_documents (todo_id, document_id) VALUES (?1, ?2)",
+        params![todo_id, document_id],
     )
     .map_err(|e| e.to_string())?;
     Ok(())
@@ -362,12 +363,12 @@ pub fn link_document_to_todo(
 pub fn unlink_document_from_todo(
     state: tauri::State<AppState>,
     todo_id: i64,
-    document_title: String,
+    document_id: i64,
 ) -> Result<(), String> {
     let db = state.db.lock().map_err(|e| e.to_string())?;
     db.execute(
-        "DELETE FROM todo_documents WHERE todo_id = ?1 AND document_title = ?2",
-        params![todo_id, document_title],
+        "DELETE FROM todo_documents WHERE todo_id = ?1 AND document_id = ?2",
+        params![todo_id, document_id],
     )
     .map_err(|e| e.to_string())?;
     Ok(())
@@ -377,48 +378,41 @@ pub fn unlink_document_from_todo(
 pub fn get_linked_documents(
     state: tauri::State<AppState>,
     todo_id: i64,
-    app_handle: AppHandle,
 ) -> Result<Vec<Document>, String> {
-    use crate::document_commands::{get_knowledge_dir, system_time_to_datetime};
-    
     let db = state.db.lock().map_err(|e| e.to_string())?;
-    let knowledge_dir = get_knowledge_dir(&app_handle)?;
     let mut result = Vec::new();
 
     let mut stmt = db
-        .prepare("SELECT document_title FROM todo_documents WHERE todo_id = ?1")
+        .prepare("SELECT document_id FROM todo_documents WHERE todo_id = ?1")
         .map_err(|e| e.to_string())?;
 
-    let titles = stmt
+    let doc_ids = stmt
         .query_map(params![todo_id], |row| {
-            row.get::<_, String>(0)
+            row.get::<_, i64>(0)
         })
         .map_err(|e| e.to_string())?;
 
-    for title_result in titles {
-        let title = title_result.map_err(|e| e.to_string())?;
-        let safe_title = sanitize_filename(&title);
-        let file_path = knowledge_dir.join(format!("{}.md", safe_title));
-        
-        if let Ok(content) = std::fs::read_to_string(&file_path) {
-            if let Ok(metadata) = std::fs::metadata(&file_path) {
-                if let Ok(modified) = metadata.modified() {
-                    let created = metadata.created().unwrap_or(modified);
-                    let id = modified
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .map(|d| d.as_millis() as i64)
-                        .unwrap_or(0);
-                    
-                    result.push(Document {
-                        id,
-                        title,
-                        content,
-                        created_at: system_time_to_datetime(created).to_rfc3339(),
-                        updated_at: system_time_to_datetime(modified).to_rfc3339(),
-                    });
-                }
-            }
-        }
+    for id_result in doc_ids {
+        let doc_id = id_result.map_err(|e| e.to_string())?;
+
+        // 从 documents 表读取文档内容
+        let doc = db
+            .query_row(
+                "SELECT id, title, content, created_at, updated_at FROM documents WHERE id = ?1",
+                params![doc_id],
+                |row| {
+                    Ok(Document {
+                        id: row.get(0)?,
+                        title: row.get(1)?,
+                        content: row.get(2)?,
+                        created_at: row.get(3)?,
+                        updated_at: row.get(4)?,
+                    })
+                },
+            )
+            .map_err(|e| format!("读取文档失败：{}", e))?;
+
+        result.push(doc);
     }
 
     Ok(result)

@@ -9,8 +9,37 @@ function Dialog({ ...props }: DialogPrimitive.Root.Props) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
 }
 
-function DialogTrigger({ ...props }: DialogPrimitive.Trigger.Props) {
-  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
+function DialogTrigger({
+  className,
+  children,
+  asChild,
+  ...props
+}: DialogPrimitive.Trigger.Props & { asChild?: boolean }) {
+  if (asChild) {
+    // 使用 cloneElement 来合并 props，保留子组件的样式
+    const child = React.Children.only(children) as React.ReactElement<any>;
+    return (
+      <DialogPrimitive.Trigger
+        data-slot="dialog-trigger"
+        {...props}
+        render={(renderProps: any) => {
+          // 合并 className，保留子组件的样式
+          const childClassName = child.props?.className;
+          const mergedClassName = cn(childClassName, renderProps.className);
+          return React.cloneElement(child, { ...renderProps, className: mergedClassName });
+        }}
+      />
+    );
+  }
+  return (
+    <DialogPrimitive.Trigger
+      data-slot="dialog-trigger"
+      className={className}
+      {...props}
+    >
+      {children}
+    </DialogPrimitive.Trigger>
+  );
 }
 
 function DialogPortal({ ...props }: DialogPrimitive.Portal.Props) {

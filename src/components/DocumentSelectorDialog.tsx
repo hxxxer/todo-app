@@ -21,15 +21,15 @@ interface DocumentSelectorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   documents: Document[];
-  selectedDocumentTitles: string[];
-  onConfirm: (documentTitles: string[]) => void;
+  selectedDocumentIds: number[];
+  onConfirm: (documentIds: number[]) => void;
 }
 
 export function DocumentSelectorDialog({
   open,
   onOpenChange,
   documents,
-  selectedDocumentTitles,
+  selectedDocumentIds,
   onConfirm,
 }: DocumentSelectorDialogProps) {
   // ============================================
@@ -38,18 +38,18 @@ export function DocumentSelectorDialog({
   // 搜索关键词
   const [searchQuery, setSearchQuery] = useState("");
 
-  // 本地选中的文档标题列表（用于多选）
-  const [localSelectedTitles, setLocalSelectedTitles] = useState<string[]>([]);
+  // 本地选中的文档 ID 列表（用于多选）
+  const [localSelectedIds, setLocalSelectedIds] = useState<number[]>([]);
 
   // ============================================
   // 初始化选中状态
   // ============================================
   useEffect(() => {
     if (open) {
-      setLocalSelectedTitles(selectedDocumentTitles);
+      setLocalSelectedIds(selectedDocumentIds);
       setSearchQuery("");
     }
-  }, [open, selectedDocumentTitles]);
+  }, [open, selectedDocumentIds]);
 
   // ============================================
   // 搜索过滤和排序
@@ -73,28 +73,28 @@ export function DocumentSelectorDialog({
   // 事件处理函数
   // ============================================
   // 切换文档选中状态
-  const toggleDocument = (docTitle: string) => {
-    setLocalSelectedTitles(prev =>
-      prev.includes(docTitle)
-        ? prev.filter(title => title !== docTitle)
-        : [...prev, docTitle]
+  const toggleDocument = (docId: number) => {
+    setLocalSelectedIds(prev =>
+      prev.includes(docId)
+        ? prev.filter(id => id !== docId)
+        : [...prev, docId]
     );
   };
 
   // 全选/取消全选
   const toggleSelectAll = () => {
-    if (localSelectedTitles.length === filteredDocuments.length) {
+    if (localSelectedIds.length === filteredDocuments.length) {
       // 取消全选
-      setLocalSelectedTitles([]);
+      setLocalSelectedIds([]);
     } else {
       // 全选当前过滤后的文档
-      setLocalSelectedTitles(filteredDocuments.map(d => d.title));
+      setLocalSelectedIds(filteredDocuments.map(d => d.id));
     }
   };
 
   // 确认选择
   const handleConfirm = () => {
-    onConfirm(localSelectedTitles);
+    onConfirm(localSelectedIds);
     onOpenChange(false);
   };
 
@@ -142,12 +142,12 @@ export function DocumentSelectorDialog({
               className="w-full justify-between"
             >
               <span>
-                {localSelectedTitles.length === filteredDocuments.length && filteredDocuments.length > 0
+                {localSelectedIds.length === filteredDocuments.length && filteredDocuments.length > 0
                   ? "取消全选"
                   : "全选"}
               </span>
               <span className="text-muted-foreground">
-                已选 {localSelectedTitles.length} / {filteredDocuments.length}
+                已选 {localSelectedIds.length} / {filteredDocuments.length}
               </span>
             </Button>
           </div>
@@ -160,7 +160,7 @@ export function DocumentSelectorDialog({
           ) : (
             <div className="space-y-2">
               {filteredDocuments.map((doc) => {
-                const isSelected = localSelectedTitles.includes(doc.title);
+                const isSelected = localSelectedIds.includes(doc.id);
                 return (
                   <div
                     key={doc.id}
@@ -168,12 +168,12 @@ export function DocumentSelectorDialog({
                       "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
                       isSelected && "bg-accent/20 border-accent"
                     )}
-                    onClick={() => toggleDocument(doc.title)}
+                    onClick={() => toggleDocument(doc.id)}
                   >
                     {/* 复选框 */}
                     <Checkbox
                       checked={isSelected}
-                      onChange={() => toggleDocument(doc.title)}
+                      onChange={() => toggleDocument(doc.id)}
                       className="flex-shrink-0"
                     />
 
@@ -203,8 +203,8 @@ export function DocumentSelectorDialog({
           </Button>
           <Button onClick={handleConfirm}>
             确认
-            {localSelectedTitles.length > 0 && (
-              <span className="ml-1 text-xs">({localSelectedTitles.length})</span>
+            {localSelectedIds.length > 0 && (
+              <span className="ml-1 text-xs">({localSelectedIds.length})</span>
             )}
           </Button>
         </div>
