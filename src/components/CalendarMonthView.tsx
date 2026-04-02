@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Grid3x3, Calendar } from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from "date-fns";
 import { Todo } from "@/lib/commands";
@@ -167,10 +168,27 @@ export function CalendarMonthView({
           )}
         </Toggle>
 
-        {/* 月份标题（中间） */}
-        <h2 className="text-xl font-semibold text-center justify-self-center min-w-0 truncate px-2">
-          {currentMonth.toLocaleDateString("zh-CN", { year: "numeric", month: "long" })}
-        </h2>
+        {/* 左侧：切换月份按钮（仅桌面端） */}
+        <div className="flex items-center justify-between gap-2">
+          {/* 左侧：上一月按钮 - 中等屏幕显示，小屏幕隐藏 */}
+          <div className="hidden md:block">
+            <Button variant="outline" size="icon" onClick={handlePrevMonth}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {/* 中间：月份标题 - 始终显示 */}
+          <h2 className="text-xl font-semibold text-center truncate px-2 flex-1">
+            {currentMonth.toLocaleDateString("zh-CN", { year: "numeric", month: "long" })}
+          </h2>
+          
+          {/* 右侧：下一月按钮 - 中等屏幕显示，小屏幕隐藏 */}
+          <div className="hidden md:block">
+            <Button variant="outline" size="icon" onClick={handleNextMonth}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
 
         {/* 今天按钮（右侧） */}
         <Button variant="outline" size="sm" onClick={handleToday} className="md:block justify-self-end h-9">

@@ -284,10 +284,11 @@ export function CalendarPage({ onNavigateToKnowledge }: CalendarPageProps) {
         "p-4 flex flex-col",
         // 移动端：占满宽度
         "md:w-full w-full",
+        "md:h-full", 
         // 移动端：月视图时高度约 50%，年视图时占满
         viewMode === "month" ? "md:h-full h-[50vh]" : "md:h-full h-full",
         // 桌面端：根据视图模式调整宽度
-        viewMode === "month" ? "md:w-1/2" : "md:w-full"
+        // viewMode === "month" ? "md:w-1/2" : "md:w-full"
       )}>
         {/* 日历视图 */}
         <div className="flex-1 overflow-hidden">
