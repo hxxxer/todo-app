@@ -2,7 +2,7 @@
 
 一个基于 Tauri v2 + React 19 开发的桌面待办清单工具，集成了日历、待办管理和知识库三大核心功能。
 
-![版本](https://img.shields.io/badge/version-v1.6.0-blue)
+![版本](https://img.shields.io/badge/version-v2.0.0-blue)
 ![Tauri](https://img.shields.io/badge/Tauri-v2-blue)
 ![React](https://img.shields.io/badge/React-v19-blue)
 ![Rust](https://img.shields.io/badge/Rust-stable-orange)
@@ -47,10 +47,29 @@
 | 后端框架 | Tauri v2 + Rust |
 | 数据库 | SQLite (rusqlite) |
 | 构建工具 | Vite + pnpm |
+| 移动端 | Android (arm64-v8a, x86_64) |
+
+## ✨ 2.0 新功能
+
+### 📱 移动端支持
+- **底部导航栏**：移动端专属的底部导航，快速切换页面
+- **响应式布局**：
+  - 日历页面：移动端蓝色覆盖层显示待办数量，底部显示待办列表
+  - 知识库页面：移动端列表/详情分离布局
+  - 年视图：移动端 3 列布局，桌面端 4 列布局
+- **滑动操作**：日历页面支持左右滑动切换月份
+- **硬件返回键**：文档编辑页面按返回键返回列表视图
+- **WebDAV 同步**：移动端优化布局，按钮垂直排列
+
+### 🔧 其他改进
+- **搜索功能**：知识库页面添加搜索框（标题 + 内容）
+- **UI 优化**：所有卡片添加统一边框样式
+- **开发体验**：添加 Android 构建指南文档
 
 ## TODO
 
-- [ ] 安卓移植
+- [ ] 构建 Release APK
+- [ ] 添加移动端通知支持
 
 ## 📦 安装和编译
 
@@ -114,6 +133,8 @@ todo-app/
 │   ├── AllTodosPage.tsx          # 所有待办页面
 │   ├── CalendarPage.tsx          # 日历页面
 │   ├── KnowledgePage.tsx         # 知识库页面
+│   ├── WebDavSettingsPage.tsx    # WebDAV 设置页面
+│   ├── MobileNavBar.tsx          # 移动端底部导航
 │   ├── App.tsx                   # 主应用组件
 │   └── index.css                 # 全局样式
 ├── src-tauri/                    # Rust 后端源代码
@@ -124,6 +145,7 @@ todo-app/
 │   ├── capabilities/             # Tauri 权限配置
 │   ├── Cargo.toml                # Rust 依赖配置
 │   └── tauri.conf.json           # Tauri 配置
+├── ANDROID_BUILD.md              # Android 构建指南
 ├── .gitignore                    # Git 忽略文件
 ├── package.json                  # 前端依赖配置
 ├── tsconfig.json                 # TypeScript 配置
@@ -193,6 +215,20 @@ C:\Users\{用户名}\AppData\Roaming\com.tauri-app.todo-app\todo_app.db
 5. 在右侧编辑器中编写内容
 
 ## 📝 更新日志
+
+### v2.0.0
+- ✅ 添加 Android 移动端支持
+- ✅ 移动端底部导航组件
+- ✅ 响应式布局优化：
+  - 日历页面：移动端蓝色覆盖层 + 底部待办列表
+  - 知识库页面：移动端列表/详情分离布局
+  - 年视图：移动端 3 列，桌面端 4 列
+- ✅ 日历页面滑动切换月份功能
+- ✅ Android 硬件返回键监听（文档编辑页面）
+- ✅ 知识库页面搜索功能
+- ✅ WebDAV 设置页面移动端优化
+- ✅ 添加 @tauri-apps/plugin-app 依赖
+- ✅ 添加 Android 构建指南文档
 
 ### v1.6.0
 - ✅ 添加 WebDAV 数据同步功能
