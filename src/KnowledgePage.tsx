@@ -18,7 +18,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Document, createDocument, listDocuments, updateDocument, deleteDocument } from "@/lib/commands";
-import { Trash2, Plus, ArrowLeft } from "lucide-react";
+import { Trash2, Plus, ArrowLeft, Search } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { onBackButtonPress } from "@tauri-apps/api/app";
@@ -51,6 +51,9 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
   // 编辑中的文档标题和内容
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
+
+  // 搜索关键词
+  const [searchQuery, setSearchQuery] = useState("");
 
   // ============================================
   // 数据加载
@@ -94,9 +97,22 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
   };
 
   // ============================================
+  // 搜索过滤
+  // ============================================
+  const filteredDocuments = documents.filter(doc => {
+    if (!searchQuery.trim()) return true;
+
+    const query = searchQuery.toLowerCase();
+    return (
+      doc.title.toLowerCase().includes(query) ||
+      (doc.content && doc.content.toLowerCase().includes(query))
+    );
+  });
+
+  // ============================================
   // 按日期分组文档
   // ============================================
-  const groupedDocuments = documents.reduce((acc, doc) => {
+  const groupedDocuments = filteredDocuments.reduce((acc, doc) => {
     const date = doc.updated_at.split("T")[0];
     if (!acc[date]) {
       acc[date] = [];
@@ -233,6 +249,36 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
               </div>
             </DialogContent>
           </Dialog>
+        </div>
+
+        {/* 搜索栏 */}
+        <div className="p-4 pb-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="搜索文档标题或内容..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                onClick={() => setSearchQuery("")}
+              >
+                ×
+              </Button>
+            )}
+          </div>
+          {searchQuery && (
+            <p className="text-xs text-muted-foreground mt-1">
+              找到 {filteredDocuments.length} 个文档
+              {filteredDocuments.length === 0 && "，试试其他关键词吧"}
+            </p>
+          )}
         </div>
 
         {/* 文档列表 */}
@@ -421,54 +467,83 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
     <>
       {/* 桌面端隐藏此视图 */}
       <div className="md:hidden flex h-full flex-col overflow-hidden">
-        {/* 顶部标题栏 */}
-        <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
-          <h2 className="text-2xl font-semibold">知识库</h2>
+        {/* 顶部标题栏 + 搜索栏 */}
+        <div className="p-4 flex-shrink-0 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold">知识库</h2>
 
-          {/* 新建文档按钮 */}
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="icon" className="h-10 w-10">
-                <Plus className="h-5 w-5" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>创建文档</DialogTitle>
-              </DialogHeader>
-
-              {/* 创建文档表单 */}
-              <div className="space-y-4 py-4">
-                {/* 标题输入框 */}
-                <div>
-                  <label className="text-sm font-medium mb-1 block">标题</label>
-                  <Input
-                    value={newDocTitle}
-                    onChange={(e) => setNewDocTitle(e.target.value)}
-                    placeholder="输入文档标题"
-                  />
-                </div>
-
-                {/* 创建按钮 */}
-                <Button onClick={handleCreateDocument} className="w-full">
-                  创建
+            {/* 新建文档按钮 */}
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="icon" className="h-10 w-10">
+                  <Plus className="h-5 w-5" />
                 </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>创建文档</DialogTitle>
+                </DialogHeader>
+
+                {/* 创建文档表单 */}
+                <div className="space-y-4 py-4">
+                  {/* 标题输入框 */}
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">标题</label>
+                    <Input
+                      value={newDocTitle}
+                      onChange={(e) => setNewDocTitle(e.target.value)}
+                      placeholder="输入文档标题"
+                    />
+                  </div>
+
+                  {/* 创建按钮 */}
+                  <Button onClick={handleCreateDocument} className="w-full">
+                    创建
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+
+        {/* 搜索栏 */}
+        <div className="px-4 pb-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="搜索文档标题或内容..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                onClick={() => setSearchQuery("")}
+              >
+                ×
+              </Button>
+            )}
+          </div>
+          {searchQuery && (
+            <p className="text-sm text-muted-foreground mt-1">
+              找到 {filteredDocuments.length} 个文档
+              {filteredDocuments.length === 0 && "，试试其他关键词吧"}
+            </p>
+          )}
         </div>
 
         {/* 文档列表：可滚动区域 */}
         <div className="flex-1 overflow-y-auto p-4">
           {documents.length === 0 ? (
             <div className="h-full flex items-center justify-center text-muted-foreground">
-              <p className="text-center">
-                还没有文档<br />
-                点击右上角创建
-              </p>
+              <p>还没有文档，点击右上角创建</p>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {sortedDates.map((date) => {
                 const dateDocs = groupedDocuments[date];
                 const dateObj = new Date(date + "T00:00:00");
