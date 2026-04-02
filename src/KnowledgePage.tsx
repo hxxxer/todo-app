@@ -1,6 +1,8 @@
 // ============================================
 // 知识库页面组件
-// 左侧显示文档列表，右侧显示文档编辑器
+// 列表/详情分离模式：
+// - 列表视图：显示所有文档
+// - 编辑视图：点击文档后进入编辑模式
 // ============================================
 
 import { useState, useEffect } from "react";
@@ -16,9 +18,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Document, createDocument, listDocuments, updateDocument, deleteDocument } from "@/lib/commands";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { onBackButtonPress } from "@tauri-apps/api/app";
+import { PluginListener } from "@tauri-apps/api/core";
 
 interface KnowledgePageProps {
   selectedDocumentId?: number | null;
@@ -31,16 +35,19 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
   // ============================================
   // 所有文档列表
   const [documents, setDocuments] = useState<Document[]>([]);
-  
-  // 当前选中的文档
+
+  // 当前选中的文档（列表视图选中）
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
-  
+
+  // 是否进入编辑模式
+  const [isEditing, setIsEditing] = useState(false);
+
   // 创建文档对话框是否打开
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  
+
   // 新建文档的标题
   const [newDocTitle, setNewDocTitle] = useState("");
-  
+
   // 编辑中的文档标题和内容
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
@@ -53,7 +60,7 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
     loadDocuments();
   }, []);
 
-  // 当外部传入选中文档 ID 时，自动选中该文档
+  // 当外部传入选中文档 ID 时，自动选中该文档并进入编辑模式
   useEffect(() => {
     if (selectedDocumentId) {
       const doc = documents.find(d => d.id === selectedDocumentId);
@@ -61,6 +68,7 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
         setSelectedDoc(doc);
         setEditTitle(doc.title);
         setEditContent(doc.content);
+        setIsEditing(true);
         onDocumentSelected?.(null);  // 通知父组件已处理
       }
     }
@@ -114,21 +122,29 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
       setDocuments([doc, ...documents]);  // 更新文档列表
       setNewDocTitle("");  // 清空输入框
       setIsCreateDialogOpen(false);  // 关闭对话框
-      
-      // 自动选中新创建的文档
+
+      // 自动选中并进入编辑模式
       setSelectedDoc(doc);
       setEditTitle(doc.title);
       setEditContent(doc.content);
+      setIsEditing(true);
     } catch (error) {
       console.error("创建文档失败:", error);
     }
   };
 
-  // 选择文档
+  // 选择文档（进入编辑模式）
   const handleSelectDocument = (doc: Document) => {
     setSelectedDoc(doc);
     setEditTitle(doc.title);
     setEditContent(doc.content);
+    setIsEditing(true);
+  };
+
+  // 返回列表视图
+  const handleBackToList = () => {
+    setIsEditing(false);
+    setSelectedDoc(null);
   };
 
   // 保存文档
@@ -162,9 +178,9 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
       await deleteDocument(id);
       // 重新加载文档列表
       await loadDocuments();
-      // 如果删除的是当前选中的文档，清空选中状态
+      // 如果删除的是当前选中的文档，返回列表视图
       if (selectedDoc?.id === id) {
-        setSelectedDoc(null);
+        handleBackToList();
       }
     } catch (error) {
       console.error("删除文档失败:", error);
@@ -174,28 +190,30 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
   // ============================================
   // 渲染页面
   // ============================================
-  return (
-    // 根容器：水平布局，左侧文档列表 + 右侧编辑器
-    <div className="flex h-full">
-      
-      {/* ========== 左侧：文档列表 ========== */}
-      <div className="w-96 border-r p-6 overflow-y-auto">
+  
+  // ============================================
+  // 桌面端：左右分栏布局（列表 + 编辑器同时显示）
+  // ============================================
+  const DesktopSplitView = () => (
+    <div className="hidden md:flex h-full">
+      {/* 左侧：文档列表 */}
+      <div className="w-80 border-r overflow-y-auto flex-shrink-0">
         {/* 标题和新建按钮 */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-background z-10">
           <h2 className="text-lg font-semibold">知识库</h2>
-          
+
           {/* 新建文档对话框 */}
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="icon">
-                <Plus className="h-4 w-4" />  {/* 加号图标 */}
+              <Button size="icon" className="h-8 w-8">
+                <Plus className="h-4 w-4" />
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>创建文档</DialogTitle>
               </DialogHeader>
-              
+
               {/* 创建文档表单 */}
               <div className="space-y-4 py-4">
                 {/* 标题输入框 */}
@@ -207,7 +225,7 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
                     placeholder="输入文档标题"
                   />
                 </div>
-                
+
                 {/* 创建按钮 */}
                 <Button onClick={handleCreateDocument} className="w-full">
                   创建
@@ -217,18 +235,15 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
           </Dialog>
         </div>
 
-        {/* ========== 文档列表：按日期分组 ========== */}
-        <div className="space-y-4">
+        {/* 文档列表 */}
+        <div className="p-6 space-y-6">
           {documents.length === 0 ? (
-            // 空状态提示
             <p className="text-muted-foreground text-sm text-center py-8">
               还没有文档，点击右上角创建
             </p>
           ) : (
-            // 按日期分组显示文档
             sortedDates.map((date) => {
               const dateDocs = groupedDocuments[date];
-              // 格式化日期显示
               const dateObj = new Date(date + "T00:00:00");
               const today = new Date();
               const yesterday = new Date(today);
@@ -245,7 +260,6 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
 
               return (
                 <div key={date}>
-                  {/* 日期分隔线 */}
                   <div className="flex items-center gap-3 mb-3">
                     <div className="flex-1 h-px bg-border" />
                     <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
@@ -254,22 +268,18 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
                     <div className="flex-1 h-px bg-border" />
                   </div>
 
-                  {/* 该日期的文档卡片 */}
                   <div className="space-y-2">
                     {dateDocs.map((doc) => (
                       <Card
                         key={doc.id}
-                        // 卡片样式：可点击、悬停效果、选中高亮
                         className={cn(
-                          "cursor-pointer hover:bg-accent/15",
+                          "cursor-pointer hover:bg-accent/15 transition-colors border",
                           selectedDoc?.id === doc.id ? "bg-accent/20" : ""
                         )}
                         onClick={() => handleSelectDocument(doc)}
                       >
                         <CardContent className="p-3">
-                          {/* 文档标题 */}
                           <h3 className="font-medium truncate">{doc.title}</h3>
-                          {/* 最后更新时间 */}
                           <p className="text-xs text-muted-foreground mt-1">
                             {format(new Date(doc.updated_at), "HH:mm")}
                           </p>
@@ -284,36 +294,18 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
         </div>
       </div>
 
-      {/* ========== 右侧：文档编辑器 ========== */}
-      <div className="flex-1 p-6 overflow-y-auto">
+      {/* 右侧：编辑器 */}
+      <div className="flex-1 flex flex-col overflow-hidden p-6">
         {selectedDoc ? (
-          // 编辑器区域
-          <div className="h-full flex flex-col">
-            {/* 标题输入和保存/删除/打开按钮 */}
-            <div className="flex items-center justify-between mb-4">
-              {/* 标题输入框 */}
+          <div className="h-full flex flex-col border rounded-lg">
+            <div className="flex items-center justify-between p-4 border-b">
               <Input
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
                 className="text-xl font-semibold border-none focus-visible:ring-0 px-0"
               />
-
-              {/* 操作按钮 */}
               <div className="flex gap-2">
-                {/* 用 Notepad4 打开（暂未启用） */}
-                {/* <Button
-                  variant="outline"
-                  onClick={() => openDocumentWithEditor(selectedDoc.id)}
-                  title="用外部编辑器打开"
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  用 Notepad4 打开
-                </Button> */}
-
-                {/* 保存按钮 */}
                 <Button onClick={handleSaveDocument}>保存</Button>
-
-                {/* 删除按钮 */}
                 <Button
                   variant="destructive"
                   size="icon"
@@ -324,22 +316,217 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
               </div>
             </div>
 
-            {/* 内容编辑区域 */}
             <Textarea
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
               placeholder="开始编写文档内容..."
-              className="text-xl focus-visible:ring-0 flex-1 resize-none leading-relaxed"
+              className="flex-1 resize-none border-0 focus-visible:ring-0 p-4 text-base leading-relaxed"
             />
           </div>
         ) : (
-          // 未选择文档时的提示
-          <div className="h-full flex items-center justify-center text-muted-foreground">
+          <div className="h-full flex items-center justify-center text-muted-foreground border rounded-lg p-8">
             <p>选择或创建一个文档开始编写</p>
           </div>
         )}
       </div>
     </div>
+  );
+
+  // ============================================
+  // 移动端：列表/详情分离布局
+  // ============================================
+
+  // 监听 Android 硬件返回键（仅编辑模式下）
+  useEffect(() => {
+    if (!isEditing) return;
+
+    let listener: PluginListener | null = null;
+    let cancelled = false;
+
+    onBackButtonPress(() => {
+      handleBackToList();
+    }).then(fn => {
+      if (cancelled) {
+        fn.unregister(); // 已取消则立即移除
+      } else {
+        listener = fn;
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      listener?.unregister();
+    };
+  }, [isEditing, handleBackToList]);
+
+  // 编辑视图（仅移动端）
+  if (isEditing && selectedDoc) {
+    return (
+      <>
+        {/* 桌面端隐藏此视图 */}
+        <div className="md:hidden flex h-full flex-col overflow-hidden p-3">
+          {/* 顶部导航栏：返回按钮 + 标题 + 操作按钮 */}
+          <div className="flex items-center justify-between pt-3 pb-3 pr-3 flex-shrink-0">
+            {/* 左侧：返回按钮 */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBackToList}
+              className="h-9 w-9"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+
+            {/* 中间：标题输入 */}
+            <Input
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              className="text-base font-semibold border-none focus-visible:ring-0 px-2 text-center max-w-[180px]"
+              placeholder="文档标题"
+            />
+
+            {/* 右侧：保存和删除按钮 */}
+            <div className="flex gap-1">
+              <Button onClick={handleSaveDocument} size="sm" className="h-9">保存</Button>
+              <Button
+                variant="destructive"
+                size="icon"
+                onClick={() => handleDeleteDocument(selectedDoc.id)}
+                className="h-9 w-9"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* 内容编辑区域：占满剩余空间，带边框和内边距 */}
+          <Textarea
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            placeholder="开始编写文档内容..."
+            className="flex-1 resize-none border-x border-b rounded-b-lg focus-visible:ring-0 p-3 text-base leading-relaxed"
+          />
+        </div>
+
+        {/* 桌面端：在编辑视图时也显示分栏布局 */}
+        <div className="hidden md:block h-full">
+          <DesktopSplitView />
+        </div>
+      </>
+    );
+  }
+
+  // 列表视图（仅移动端）
+  return (
+    <>
+      {/* 桌面端隐藏此视图 */}
+      <div className="md:hidden flex h-full flex-col overflow-hidden">
+        {/* 顶部标题栏 */}
+        <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
+          <h2 className="text-2xl font-semibold">知识库</h2>
+
+          {/* 新建文档按钮 */}
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="icon" className="h-10 w-10">
+                <Plus className="h-5 w-5" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>创建文档</DialogTitle>
+              </DialogHeader>
+
+              {/* 创建文档表单 */}
+              <div className="space-y-4 py-4">
+                {/* 标题输入框 */}
+                <div>
+                  <label className="text-sm font-medium mb-1 block">标题</label>
+                  <Input
+                    value={newDocTitle}
+                    onChange={(e) => setNewDocTitle(e.target.value)}
+                    placeholder="输入文档标题"
+                  />
+                </div>
+
+                {/* 创建按钮 */}
+                <Button onClick={handleCreateDocument} className="w-full">
+                  创建
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* 文档列表：可滚动区域 */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {documents.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-muted-foreground">
+              <p className="text-center">
+                还没有文档<br />
+                点击右上角创建
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {sortedDates.map((date) => {
+                const dateDocs = groupedDocuments[date];
+                const dateObj = new Date(date + "T00:00:00");
+                const today = new Date();
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+
+                let dateLabel: string;
+                if (dateObj.toDateString() === today.toDateString()) {
+                  dateLabel = "今天";
+                } else if (dateObj.toDateString() === yesterday.toDateString()) {
+                  dateLabel = "昨天";
+                } else {
+                  dateLabel = format(dateObj, "yyyy 年 MM 月 dd 日");
+                }
+
+                return (
+                  <div key={date}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="flex-1 h-px bg-border" />
+                      <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+                        {dateLabel} · {dateDocs.length} 个文档
+                      </span>
+                      <div className="flex-1 h-px bg-border" />
+                    </div>
+
+                    <div className="space-y-2">
+                      {dateDocs.map((doc) => (
+                        <Card
+                          key={doc.id}
+                          className={cn(
+                            "cursor-pointer hover:bg-accent/15 transition-colors border",
+                            selectedDoc?.id === doc.id ? "bg-accent/20" : ""
+                          )}
+                          onClick={() => handleSelectDocument(doc)}
+                        >
+                          <CardContent className="p-4">
+                            <h3 className="font-medium text-base">{doc.title}</h3>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {format(new Date(doc.updated_at), "yyyy-MM-dd HH:mm")}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 桌面端：始终显示分栏布局 */}
+      <div className="hidden md:block h-full">
+        <DesktopSplitView />
+      </div>
+    </>
   );
 }
 

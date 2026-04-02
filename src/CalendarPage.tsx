@@ -17,13 +17,12 @@ import {
 } from "@/components/ui/dialog";
 import { Todo, Document, createTodo, listTodos, deleteTodo, toggleTodo, updateTodo, linkDocumentToTodo, unlinkDocumentFromTodo, getLinkedDocuments, getAllDocumentsForSelection } from "@/lib/commands";
 import { format } from "date-fns";
-import { Trash2, Link, Unlink, ExternalLink, FileText, Calendar, Grid3x3, Pencil } from "lucide-react";
+import { Trash2, Link, Unlink, ExternalLink, FileText, Pencil, Plus } from "lucide-react";
 import { CalendarMonthView } from "@/components/CalendarMonthView";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { DocumentSelectorDialog } from "@/components/DocumentSelectorDialog";
 import { YearView } from "@/components/YearView";
-import { Toggle } from "@/components/ui/toggle";
 
 interface CalendarPageProps {
   onNavigateToKnowledge?: (docId: number) => void;
@@ -277,57 +276,60 @@ export function CalendarPage({ onNavigateToKnowledge }: CalendarPageProps) {
   // 渲染页面
   // ============================================
   return (
-    // 根容器：水平布局，左侧日历 + 右侧待办列表
-    <div className="flex h-full">
+    // 根容器：水平布局（桌面端）/ 垂直布局（移动端）
+    <div className="flex h-full md:flex-row flex-col">
 
-      {/* ========== 左侧：日历区域 ========== */}
-      <div className="h-full w-full p-4 flex flex-col">
-        {/* 视图切换按钮 */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <Toggle
-              pressed={viewMode === "month"}
-              onPressedChange={() => setViewMode(viewMode === "month" ? "year" : "month")}
-              size="sm"
-              className="data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
-            >
-              {viewMode === "month" ? (
-                <span className="flex items-center gap-2">
-                  <Grid3x3 className="h-4 w-4" />
-                  年视图
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  月视图
-                </span>
-              )}
-            </Toggle>
-          </div>
-        </div>
-        
+      {/* ========== 日历区域 ========== */}
+      <div className={cn(
+        "p-4 flex flex-col",
+        // 移动端：占满宽度
+        "md:w-full w-full",
+        // 移动端：月视图时高度约 50%，年视图时占满
+        viewMode === "month" ? "md:h-full h-[50vh]" : "md:h-full h-full",
+        // 桌面端：根据视图模式调整宽度
+        viewMode === "month" ? "md:w-1/2" : "md:w-full"
+      )}>
         {/* 日历视图 */}
         <div className="flex-1 overflow-hidden">
           {viewMode === "month" ? (
-            <CalendarMonthView
-              selectedDate={selectedDate}
-              onSelectDate={setSelectedDate}
-              todos={allTodos}
-            />
+            <>
+              {/* 桌面端月视图 */}
+              <div className="hidden md:block h-full">
+                <CalendarMonthView
+                  selectedDate={selectedDate}
+                  onSelectDate={setSelectedDate}
+                  todos={allTodos}
+                  mobile={false}
+                  viewMode={viewMode}
+                  onViewModeChange={setViewMode}
+                />
+              </div>
+              {/* 移动端月视图 */}
+              <div className="md:hidden h-full">
+                <CalendarMonthView
+                  selectedDate={selectedDate}
+                  onSelectDate={setSelectedDate}
+                  todos={allTodos}
+                  mobile={true}
+                  viewMode={viewMode}
+                  onViewModeChange={setViewMode}
+                />
+              </div>
+            </>
           ) : (
             <YearView
               selectedYear={selectedYear}
               onYearChange={handleYearChange}
               onMonthSelect={handleMonthSelect}
+              onViewModeChange={setViewMode}
             />
           )}
         </div>
       </div>
 
-      {/* ========== 右侧：待办事项列表 ========== */}
-      {/* 年视图下隐藏右侧待办列表 */}
+      {/* ========== 右侧：待办事项列表（桌面端）========== */}
       {viewMode === "month" && (
-        <div className="w-96 border-l p-6 overflow-y-auto">
+        <div className="hidden md:block w-96 border-l p-6 overflow-y-auto">
           {selectedDate ? (
             <div className="space-y-4">
               {/* 日期标题和新建按钮 */}
@@ -518,6 +520,202 @@ export function CalendarPage({ onNavigateToKnowledge }: CalendarPageProps) {
           </div>
         )}
       </div>
+      )}
+
+      {/* ========== 移动端：底部待办列表 ========== */}
+      {viewMode === "month" && (
+        <div className="md:hidden flex flex-col border-t flex-1 overflow-hidden">
+          {selectedDate ? (
+            <>
+              {/* 标题栏：日期 + 新建按钮 */}
+              <div className="flex items-center justify-between p-4 flex-shrink-0">
+                <h2 className="text-lg font-semibold">
+                  {format(selectedDate, "MM 月 dd 日")}
+                </h2>
+
+                {/* 新建待办对话框 */}
+                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>创建待办事项</DialogTitle>
+                    </DialogHeader>
+
+                    {/* 创建待办表单 */}
+                    <div className="space-y-4 py-4">
+                      {/* 标题输入框 */}
+                      <div>
+                        <label className="text-sm font-medium mb-1 block">标题</label>
+                        <Input
+                          value={newTodoTitle}
+                          onChange={(e) => setNewTodoTitle(e.target.value)}
+                          placeholder="输入待办标题"
+                        />
+                      </div>
+
+                      {/* 截止日期输入框 */}
+                      <div>
+                        <label className="text-sm font-medium mb-1 block">截止日期</label>
+                        <Input
+                          type="date"
+                          value={newTodoDeadline}
+                          onChange={(e) => setNewTodoDeadline(e.target.value)}
+                        />
+                      </div>
+
+                      {/* 备注输入框 */}
+                      <div>
+                        <label className="text-sm font-medium mb-1 block">备注</label>
+                        <Textarea
+                          value={newTodoNotes}
+                          onChange={(e) => setNewTodoNotes(e.target.value)}
+                          placeholder="输入备注信息"
+                          rows={3}
+                        />
+                      </div>
+
+                      {/* 创建按钮 */}
+                      <Button onClick={handleCreateTodo} className="w-full">
+                        创建
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              {/* 待办列表区域 */}
+              <div className="flex-1 overflow-y-auto px-4 pb-4">
+                <div className="space-y-2">
+                  {todos.length === 0 ? (
+                    // 空状态提示
+                    <p className="text-muted-foreground text-sm text-center py-8">
+                      这一天还没有待办事项
+                    </p>
+                  ) : (
+                    // 待办卡片列表
+                    todos.map((todo) => (
+                      <Card key={todo.id} className={cn(
+                        todo.completed ? "opacity-60 grayscale" : ""
+                      )}>
+                        <CardContent className="p-4 space-y-2">
+                          {/* 复选框和标题行 */}
+                          <div className="flex items-start gap-3">
+                            <Checkbox
+                              checked={todo.completed}
+                              onCheckedChange={() => handleToggleTodo(todo.id)}
+                              className="mt-1"
+                            />
+                            <div className="flex-1">
+                              <h3 className={cn(
+                                "font-medium",
+                                todo.completed && "line-through text-muted-foreground"
+                              )}>{todo.title}</h3>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 flex-shrink-0"
+                              onClick={() => handleDeleteTodo(todo.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+
+                          {/* 截止日期 */}
+                          {todo.deadline && (
+                            <p className="text-sm text-muted-foreground">
+                              截止：{todo.deadline}
+                            </p>
+                          )}
+
+                          {/* 备注区域 */}
+                          <div className="relative min-h-[1.25rem]">
+                            {todo.notes && (
+                              <p className="text-sm text-muted-foreground pr-6 break-words">
+                                {todo.notes}
+                              </p>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 absolute right-0 top-0"
+                              onClick={() => handleOpenEditNotes(todo)}
+                              title="编辑备注"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          </div>
+
+                          {/* 关联文档区域 */}
+                          <div className="pt-2 border-t">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Link className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-xs text-muted-foreground">关联文档</span>
+                            </div>
+
+                            {linkedDocsMap.get(todo.id) && linkedDocsMap.get(todo.id)!.length > 0 && (
+                              <div className="space-y-1 mb-2">
+                                {linkedDocsMap.get(todo.id)!.map((doc) => (
+                                  <div key={doc.id} className="flex items-center justify-between text-xs gap-1">
+                                    <span className="text-muted-foreground truncate flex-1">{doc.title}</span>
+                                    <div className="flex items-center gap-0.5">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-5 w-5"
+                                        onClick={() => handleNavigateToDocument(doc.id)}
+                                        title="跳转到文档"
+                                      >
+                                        <ExternalLink className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-5 w-5"
+                                        onClick={() => handleUnlinkDocument(todo.id, doc.id)}
+                                        title="断开关联"
+                                      >
+                                        <Unlink className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full h-8"
+                              onClick={() => handleOpenDocSelector(todo.id)}
+                            >
+                              <FileText className="h-4 w-4 mr-2" />
+                              选择文档
+                              {linkedDocsMap.get(todo.id) && linkedDocsMap.get(todo.id)!.length > 0 && (
+                                <span className="ml-1 text-xs text-muted-foreground">
+                                  ({linkedDocsMap.get(todo.id)!.length})
+                                </span>
+                              )}
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            // 未选择日期时的提示
+            <div className="h-full flex items-center justify-center text-muted-foreground">
+              <p>请选择一个日期</p>
+            </div>
+          )}
+        </div>
       )}
 
       {/* ========== 文档选择器弹窗 ========== */}

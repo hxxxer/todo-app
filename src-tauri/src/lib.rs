@@ -13,6 +13,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        // .plugin(tauri_plugin_app::init())
         .setup(|app| {
             let app_state = AppState::new(app.handle())?;
             app.manage(app_state);

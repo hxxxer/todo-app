@@ -132,8 +132,8 @@ export function WebDavSettings() {
   const hasConfig = config !== null;
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="p-6 max-w-2xl mx-auto">
+    <div className="h-full overflow-y-auto p-4 md:p-6 pt-8 md:pt-6">
+      <div className="max-w-2xl mx-auto">
         <div className="flex items-center gap-2 mb-6">
           <Cloud className="h-6 w-6" />
           <h1 className="text-2xl font-semibold">WebDAV 同步设置</h1>
@@ -141,7 +141,7 @@ export function WebDavSettings() {
 
         {/* 同步操作卡片 */}
         {hasConfig && (
-          <Card className="mb-6">
+          <Card className="mb-6 border">
             <CardHeader>
               <CardTitle>数据同步</CardTitle>
               <CardDescription>
@@ -149,30 +149,33 @@ export function WebDavSettings() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* 同步按钮 */}
-              <div className="flex gap-2">
+              {/* 同步按钮：移动端垂直排列，桌面端水平排列 */}
+              <div className="flex flex-col md:flex-row gap-2">
                 <Button
                   onClick={() => handleSync("upload")}
                   disabled={syncStatus.syncing}
+                  className="w-full md:w-auto"
                 >
-                  <CloudUpload className="h-4 w-4 mr-2" />
-                  上传到云端
+                  <CloudUpload className="h-4 w-4 md:mr-2" />
+                  <span className="md:inline">上传到云端</span>
                 </Button>
                 <Button
                   onClick={() => handleSync("download")}
                   disabled={syncStatus.syncing}
                   variant="outline"
+                  className="w-full md:w-auto"
                 >
-                  <CloudDownload className="h-4 w-4 mr-2" />
-                  从云端下载
+                  <CloudDownload className="h-4 w-4 md:mr-2" />
+                  <span className="md:inline">从云端下载</span>
                 </Button>
                 <Button
                   onClick={() => handleSync("sync")}
                   disabled={syncStatus.syncing}
                   variant="outline"
+                  className="w-full md:w-auto"
                 >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${syncStatus.syncing ? "animate-spin" : ""}`} />
-                  同步
+                  <RefreshCw className={`h-4 w-4 md:mr-2 ${syncStatus.syncing ? "animate-spin" : ""}`} />
+                  <span className="md:inline">同步</span>
                 </Button>
               </div>
 
@@ -209,7 +212,7 @@ export function WebDavSettings() {
         )}
 
         {/* 配置卡片 */}
-        <Card className="mb-6">
+        <Card className="mb-6 border">
         <CardHeader>
           <CardTitle>WebDAV 配置</CardTitle>
           <CardDescription>
@@ -291,15 +294,15 @@ export function WebDavSettings() {
             </div>
           )}
 
-          {/* 操作按钮 */}
-          <div className="flex gap-2 pt-4">
+          {/* 操作按钮：移动端垂直排列，桌面端水平排列 */}
+          <div className="flex flex-col md:flex-row gap-2 pt-4">
             {!isEditing ? (
               <>
-                <Button onClick={() => setIsEditing(true)}>
+                <Button onClick={() => setIsEditing(true)} className="w-full md:w-auto">
                   编辑配置
                 </Button>
                 {hasConfig && (
-                  <Button variant="outline" onClick={handleDelete}>
+                  <Button variant="outline" onClick={handleDelete} className="w-full md:w-auto">
                     <Trash2 className="h-4 w-4 mr-2" />
                     删除配置
                   </Button>
@@ -307,10 +310,10 @@ export function WebDavSettings() {
               </>
             ) : (
               <>
-                <Button onClick={handleSave}>
+                <Button onClick={handleSave} className="w-full md:w-auto">
                   保存配置
                 </Button>
-                <Button variant="outline" onClick={handleTest} disabled={isTesting}>
+                <Button variant="outline" onClick={handleTest} disabled={isTesting} className="w-full md:w-auto">
                   {isTesting ? "测试中..." : "测试连接"}
                 </Button>
                 <Button variant="ghost" onClick={() => {
@@ -321,7 +324,7 @@ export function WebDavSettings() {
                     setPassword(config.password);
                     setRemotePath(config.remote_path);
                   }
-                }}>
+                }} className="w-full md:w-auto">
                   取消
                 </Button>
               </>

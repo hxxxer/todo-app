@@ -1,3 +1,5 @@
+// 直接使用导入的 invoke（推荐方式）
+// @tauri-apps/api/core 会自动处理 window.__TAURI__ 和 window.__TAURI_INTERNALS__
 import { invoke } from "@tauri-apps/api/core";
 
 // ============================================
@@ -28,7 +30,7 @@ export interface Document {
 // 初始化数据库
 // ============================================
 export async function initDb(): Promise<string> {
-  return invoke<string>("init_db");
+  return invoke("init_db");
 }
 
 // ============================================
@@ -45,14 +47,14 @@ export async function createTodo(
   notes?: string | null,
   completed?: boolean
 ): Promise<Todo> {
-  return invoke<Todo>("create_todo", { title, date, deadline, notes, completed });
+  return invoke("create_todo", { title, date, deadline, notes, completed });
 }
 
 /**
  * 获取指定日期的待办事项（如果不传日期，获取所有待办）
  */
 export async function listTodos(date?: string | null): Promise<Todo[]> {
-  return invoke<Todo[]>("list_todos", { date });
+  return invoke("list_todos", { date });
 }
 
 /**
@@ -65,7 +67,7 @@ export async function updateTodo(
   notes?: string | null,
   completed?: boolean | null
 ): Promise<void> {
-  return invoke<void>("update_todo", { id, title, deadline, notes, completed });
+  return invoke("update_todo", { id, title, deadline, notes, completed });
 }
 
 /**
@@ -73,21 +75,21 @@ export async function updateTodo(
  * @returns 新的完成状态
  */
 export async function toggleTodo(id: number): Promise<boolean> {
-  return invoke<boolean>("toggle_todo", { id });
+  return invoke("toggle_todo", { id });
 }
 
 /**
  * 获取所有待办事项（按日期倒序排列）
  */
 export async function getAllTodosOrdered(): Promise<Todo[]> {
-  return invoke<Todo[]>("get_all_todos_ordered");
+  return invoke("get_all_todos_ordered");
 }
 
 /**
  * 删除待办事项
  */
 export async function deleteTodo(id: number): Promise<void> {
-  return invoke<void>("delete_todo", { id });
+  return invoke("delete_todo", { id });
 }
 
 // ============================================
@@ -101,21 +103,21 @@ export async function createDocument(
   title: string,
   content: string
 ): Promise<Document> {
-  return invoke<Document>("create_document", { title, content });
+  return invoke("create_document", { title, content });
 }
 
 /**
  * 获取所有文档列表
  */
 export async function listDocuments(): Promise<Document[]> {
-  return invoke<Document[]>("list_documents");
+  return invoke("list_documents");
 }
 
 /**
  * 获取单个文档
  */
 export async function getDocument(title: string): Promise<Document> {
-  return invoke<Document>("get_document", { title });
+  return invoke("get_document", { title });
 }
 
 /**
@@ -126,14 +128,14 @@ export async function updateDocument(
   title?: string | null,
   content?: string | null
 ): Promise<void> {
-  return invoke<void>("update_document", { id, title, content });
+  return invoke("update_document", { id, title, content });
 }
 
 /**
  * 删除文档
  */
 export async function deleteDocument(id: number): Promise<void> {
-  return invoke<void>("delete_document", { id });
+  return invoke("delete_document", { id });
 }
 
 // ============================================
@@ -147,7 +149,7 @@ export async function linkDocumentToTodo(
   todoId: number,
   documentId: number
 ): Promise<void> {
-  return invoke<void>("link_document_to_todo", { todoId, documentId });
+  return invoke("link_document_to_todo", { todoId, documentId });
 }
 
 /**
@@ -157,21 +159,21 @@ export async function unlinkDocumentFromTodo(
   todoId: number,
   documentId: number
 ): Promise<void> {
-  return invoke<void>("unlink_document_from_todo", { todoId, documentId });
+  return invoke("unlink_document_from_todo", { todoId, documentId });
 }
 
 /**
  * 获取待办关联的所有文档
  */
 export async function getLinkedDocuments(todoId: number): Promise<Document[]> {
-  return invoke<Document[]>("get_linked_documents", { todoId });
+  return invoke("get_linked_documents", { todoId });
 }
 
 /**
  * 获取所有文档用于下拉选择
  */
 export async function getAllDocumentsForSelection(): Promise<Document[]> {
-  return invoke<Document[]>("get_all_documents_for_selection");
+  return invoke("get_all_documents_for_selection");
 }
 
 /**
@@ -184,14 +186,14 @@ export async function getTodosCountByMonth(
   year: number,
   month: number
 ): Promise<Record<string, number>> {
-  return invoke<Record<string, number>>("get_todos_count_by_month", { year, month });
+  return invoke("get_todos_count_by_month", { year, month });
 }
 
 /**
  * 用外部编辑器打开文档（暂未启用）
  */
 // export async function openDocumentWithEditor(id: number): Promise<void> {
-//   return invoke<void>("open_document_with_editor", { id });
+//   return invoke("open_document_with_editor", { id });
 // }
 
 // ============================================
@@ -221,7 +223,7 @@ export interface SyncStatus {
  * 获取 WebDAV 配置
  */
 export async function getWebDavConfig(): Promise<WebDavConfig | null> {
-  return invoke<WebDavConfig | null>("get_webdav_config");
+  return invoke("get_webdav_config");
 }
 
 /**
@@ -233,47 +235,47 @@ export async function saveWebDavConfig(
   password: string,
   remotePath: string
 ): Promise<void> {
-  return invoke<void>("save_webdav_config", { serverUrl, username, password, remotePath });
+  return invoke("save_webdav_config", { serverUrl, username, password, remotePath });
 }
 
 /**
  * 删除 WebDAV 配置
  */
 export async function deleteWebDavConfig(): Promise<void> {
-  return invoke<void>("delete_webdav_config");
+  return invoke("delete_webdav_config");
 }
 
 /**
  * 测试 WebDAV 连接
  */
 export async function testWebDavConnection(): Promise<string> {
-  return invoke<string>("test_webdav_connection");
+  return invoke("test_webdav_connection");
 }
 
 /**
  * 上传到 WebDAV
  */
 export async function uploadToWebDav(): Promise<string> {
-  return invoke<string>("upload_to_webdav");
+  return invoke("upload_to_webdav");
 }
 
 /**
  * 从 WebDAV 下载
  */
 export async function downloadFromWebDav(): Promise<string> {
-  return invoke<string>("download_from_webdav");
+  return invoke("download_from_webdav");
 }
 
 /**
  * 同步到 WebDAV
  */
 export async function syncWithWebDav(): Promise<string> {
-  return invoke<string>("sync_with_webdav");
+  return invoke("sync_with_webdav");
 }
 
 /**
  * 获取同步状态
  */
 export async function getSyncStatus(): Promise<SyncStatus> {
-  return invoke<SyncStatus>("get_sync_status");
+  return invoke("get_sync_status");
 }

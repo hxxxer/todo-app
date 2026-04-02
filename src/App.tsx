@@ -8,6 +8,7 @@ import { CalendarPage } from "./CalendarPage";
 import { KnowledgePage } from "./KnowledgePage";
 import { AllTodosPage } from "./AllTodosPage";
 import { WebDavSettings } from "./WebDavSettingsPage";
+import { MobileNavBar } from "./MobileNavBar";
 import { CalendarIcon, BookIcon, ListTodoIcon, Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,10 +21,10 @@ export default function App() {
   // ============================================
   // currentPage: 当前显示的页面（日历 / 所有待办 / 知识库）
   const [currentPage, setCurrentPage] = useState<Page>("calendar");
-  
+
   // isCollapsed: 侧边栏是否收起（true=收起，false=展开）
   const [isCollapsed, setIsCollapsed] = useState(true);
-  
+
   // 知识库页面选中的文档 ID（用于从日历页面跳转）
   const [selectedKnowledgeDocId, setSelectedKnowledgeDocId] = useState<number | null>(null);
 
@@ -38,10 +39,11 @@ export default function App() {
 
   return (
     // 根容器：占满整个屏幕，水平布局
-    <div className="flex h-screen w-full">
-      
-      {/* ========== 侧边栏 ========== */}
-      {/* 
+    // 添加 overflow-hidden 防止横向拉伸
+    <div className="flex h-screen w-full overflow-hidden">
+
+      {/* ========== 侧边栏（桌面端）========== */}
+      {/*
         侧边栏容器：
         - flex flex-col: 垂直布局
         - border-r: 右边框
@@ -49,10 +51,11 @@ export default function App() {
         - transition-all duration-300 ease-in-out: 平滑过渡动画
         - w-16: 收起时宽度（仅图标）
         - w-56: 展开时宽度（图标 + 文字）
+        - hidden md:flex: 移动端隐藏，桌面端显示
       */}
       <div
         className={cn(
-          "flex flex-col border-r transition-all duration-300 ease-in-out",
+          "hidden md:flex flex-col border-r transition-all duration-300 ease-in-out",
           isCollapsed ? "w-15" : "w-56"
         )}
       >
@@ -62,7 +65,7 @@ export default function App() {
           {!isCollapsed && (
             <h1 className="text-lg font-semibold truncate">TodoApp</h1>
           )}
-          
+
           {/* 展开/收起按钮 */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
@@ -94,7 +97,7 @@ export default function App() {
               <CalendarIcon className="h-5 w-5 flex-shrink-0" />  {/* 日历图标 */}
               {!isCollapsed && <span>日历</span>}  {/* 文字（仅展开时显示） */}
             </button>
-            
+
             {/* 所有待办页面按钮 */}
             <button
               onClick={() => setCurrentPage("all-todos")}
@@ -109,7 +112,7 @@ export default function App() {
               <ListTodoIcon className="h-5 w-5 flex-shrink-0" />  {/* 列表图标 */}
               {!isCollapsed && <span>所有待办</span>}
             </button>
-            
+
             {/* 知识库页面按钮 */}
             <button
               onClick={() => setCurrentPage("knowledge")}
@@ -155,7 +158,12 @@ export default function App() {
 
       {/* ========== 主内容区域 ========== */}
       {/* 根据 currentPage 显示不同的页面组件 */}
-      <main className="flex-1 overflow-hidden">
+      {/*
+        pb-16 md:pb-0: 移动端底部留白给导航栏，桌面端不留白
+        pt-8 md:pt-0: 移动端顶部留白一行，桌面端不留白
+        flex-shrink-0: 防止内容区域被压缩导致导航栏变形
+      */}
+      <main className="flex-1 overflow-hidden pb-16 md:pb-0 pt-8 md:pt-0 flex-shrink-0">
         {currentPage === "calendar" ? (
           <CalendarPage onNavigateToKnowledge={handleNavigateToKnowledge} />
         ) : currentPage === "all-todos" ? (
@@ -169,6 +177,9 @@ export default function App() {
           <WebDavSettings />
         )}
       </main>
+
+      {/* ========== 移动端底部导航栏 ========== */}
+      <MobileNavBar currentPage={currentPage} onNavigate={setCurrentPage} />
     </div>
   );
 }

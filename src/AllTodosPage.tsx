@@ -168,7 +168,8 @@ export function AllTodosPage() {
 
   return (
     // 根容器：滚动区域
-    <div className="h-full overflow-y-auto p-6">
+    // 移动端 pt-4 顶部留白，桌面端 pt-6
+    <div className="h-full overflow-y-auto p-4 md:p-6 pt-8 md:pt-6">
       {/* ========== 顶部区域：标题 + 搜索栏 + 隐藏已完成开关 ========== */}
       <div className="mb-6 space-y-4">
         <div className="flex items-center justify-between">
@@ -276,7 +277,7 @@ export function AllTodosPage() {
                     <Card
                       key={todo.id}
                       className={cn(
-                        "transition-all",
+                        "transition-all border",
                         todo.completed && "opacity-60 grayscale bg-muted/30"
                       )}
                     >

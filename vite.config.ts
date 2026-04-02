@@ -4,7 +4,8 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
 // @ts-expect-error process is a nodejs global
-const host = process.env.TAURI_DEV_HOST;
+// const host = process.env.TAURI_DEV_HOST;
+const host = "0.0.0.0";
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
@@ -18,14 +19,12 @@ export default defineConfig(async () => ({
   server: {
     port: 5177,
     strictPort: true,
-    host: host || false,
-    hmr: host
-      ? {
-          protocol: "ws",
-          host,
-          port: 5178,
-        }
-      : undefined,
+    host: host || "0.0.0.0",
+    hmr: {
+      protocol: "ws",
+      host: host || "0.0.0.0",
+      port: 5178,
+    },
     watch: {
       // 3. tell Vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],

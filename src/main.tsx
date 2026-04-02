@@ -4,7 +4,8 @@ import App from "./App";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./index.css";
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(  <React.StrictMode>
+ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+  <React.StrictMode>
     <TooltipProvider>
       <App />
     </TooltipProvider>

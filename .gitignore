@@ -58,6 +58,17 @@ src-tauri/**/*.msi
 src-tauri/**/*.deb
 src-tauri/**/*.rpm
 
+# Android 构建产物
+src-tauri/gen/android/app/build/
+src-tauri/gen/android/.gradle/
+*.apk
+*.aab
+
+# Android 签名文件（重要！不要提交）
+src-tauri/gen/android/app/keystore.properties
+src-tauri/*.keystore
+src-tauri/gen/android/app/*.keystore
+
 # ============================================
 # 数据库文件（开发时生成）
 # ============================================

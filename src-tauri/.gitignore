@@ -10,3 +10,8 @@
 *.db
 *.db-shm
 *.db-wal
+
+# Android signing files (keep keystore safe!)
+/gen/android/app/keystore.properties
+/gen/android/app/*.keystore
+/gen/android/app/build/outputs/apk/*.apk

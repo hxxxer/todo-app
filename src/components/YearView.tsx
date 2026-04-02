@@ -4,8 +4,9 @@
 // ============================================
 
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
 import { getTodosCountByMonth } from "@/lib/commands";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +14,7 @@ interface YearViewProps {
   selectedYear: number;
   onYearChange: (year: number) => void;
   onMonthSelect: (year: number, month: number) => void;
+  onViewModeChange?: (mode: "month" | "year") => void;  // 视图模式切换回调
 }
 
 interface MonthGridProps {
@@ -67,16 +69,16 @@ function MonthGrid({ year, month, todosCount, onClick }: MonthGridProps) {
 
   return (
     <div
-      className="border rounded-lg p-1.5 hover:bg-accent/15 cursor-pointer transition-colors flex flex-col"
+      className="border rounded-lg p-1 md:p-1.5 hover:bg-accent/15 cursor-pointer transition-colors flex flex-col"
       onClick={onClick}
     >
       {/* 月份标题 */}
-      <div className="text-sm font-medium mb-1 text-center shrink-0">{MONTH_NAMES[month - 1]}</div>
+      <div className="text-xs md:text-sm font-medium mb-1 text-center shrink-0">{MONTH_NAMES[month - 1]}</div>
 
       {/* 星期标题 */}
       <div className="grid grid-cols-7 gap-0.5 mb-0.5 shrink-0">
         {WEEKDAY_HEADERS.map((day, i) => (
-          <div key={i} className="text-[9px] text-muted-foreground text-center">{day}</div>
+          <div key={i} className="text-[8px] md:text-[9px] text-muted-foreground text-center">{day}</div>
         ))}
       </div>
 
@@ -86,12 +88,12 @@ function MonthGrid({ year, month, todosCount, onClick }: MonthGridProps) {
         {cells.map((day, i) => {
           const count = day !== null ? (todosCount[`${day}`.padStart(2, "0")] || 0) : 0;
           const colorClass = day !== null ? getIntensityClass(count) : "";
-          
+
           return (
             <div
               key={i}
               className={cn(
-                "rounded-sm text-[10px] flex items-center justify-center font-medium aspect-auto",
+                "rounded-sm text-[6px] md:text-[10px] flex items-center justify-center font-medium aspect-auto",
                 colorClass,
                 day === null && "invisible"
               )}
@@ -105,7 +107,12 @@ function MonthGrid({ year, month, todosCount, onClick }: MonthGridProps) {
   );
 }
 
-export function YearView({ selectedYear, onYearChange, onMonthSelect }: YearViewProps) {
+export function YearView({
+  selectedYear,
+  onYearChange,
+  onMonthSelect,
+  onViewModeChange
+}: YearViewProps) {
   // 每个月份的待办数量
   const [monthData, setMonthData] = useState<Record<number, Record<string, number>>>({});
 
@@ -141,9 +148,23 @@ export function YearView({ selectedYear, onYearChange, onMonthSelect }: YearView
 
   return (
     <div className="h-full flex flex-col">
-      {/* 顶部：年份切换和图例 */}
-      <div className="flex items-center justify-between shrink-0 px-2 pb-4">
-        <div className="flex items-center gap-2">
+      {/* 顶部：年份切换 + 月视图按钮 */}
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center shrink-0 px-2 pb-4">
+        {/* 切换到月视图按钮（左侧） */}
+        <Toggle
+          pressed={false}
+          onPressedChange={() => onViewModeChange?.("month")}
+          size="sm"
+          className="data-[state=on]:bg-accent data-[state=on]:text-accent-foreground justify-self-start"
+        >
+          <span className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            月
+          </span>
+        </Toggle>
+
+        {/* 年份切换（中间） */}
+        <div className="flex items-center gap-2 justify-self-center">
           <Button variant="outline" size="icon" onClick={handlePrevYear}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -155,34 +176,12 @@ export function YearView({ selectedYear, onYearChange, onMonthSelect }: YearView
           </Button>
         </div>
 
-        {/* 图例 */}
-        <div className="flex items-center gap-4 text-xs">
-          <span className="text-muted-foreground">待办数量：</span>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-sm bg-muted/20" />
-            <span>0</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-sm bg-blue-400/40" />
-            <span>1</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-sm bg-blue-400/60" />
-            <span>2</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-sm bg-blue-400/80" />
-            <span>3</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-sm bg-blue-400" />
-            <span>4+</span>
-          </div>
-        </div>
+        {/* 右侧占位（保持对称） */}
+        <div />
       </div>
 
-      {/* 月份网格：3 行 4 列 */}
-      <div className="flex-1 grid grid-cols-4 gap-4 min-h-0 px-2">
+      {/* 月份网格：桌面端 3 行 4 列，移动端 4 行 3 列 */}
+      <div className="flex-1 grid grid-cols-3 md:grid-cols-4 gap-3 md:gap-4 min-h-0 px-2">
         {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
           <MonthGrid
             key={month}
