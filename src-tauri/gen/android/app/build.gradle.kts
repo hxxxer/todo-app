@@ -47,18 +47,17 @@ android {
             isJniDebuggable = true
             isMinifyEnabled = false
             ndk {
-                abiFilters += listOf("arm64-v8a", "x86_64")
+                abiFilters += listOf("arm64-v8a")
             }
             packaging {
                 jniLibs.keepDebugSymbols.add("*/arm64-v8a/*.so")
-                jniLibs.keepDebugSymbols.add("*/x86_64/*.so")
             }
         }
         getByName("release") {
             isMinifyEnabled = true
             signingConfig = signingConfigs.getByName("release")
             ndk {
-                abiFilters += listOf("arm64-v8a", "x86_64")
+                abiFilters += listOf("arm64-v8a")
             }
             proguardFiles(
                 *fileTree(".") { include("**/*.pro") }
