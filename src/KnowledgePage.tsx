@@ -29,6 +29,221 @@ interface KnowledgePageProps {
   onDocumentSelected?: (docId: number | null) => void;
 }
 
+// ============================================
+// 桌面端：左右分栏布局组件（移到外部避免重新创建）
+// ============================================
+interface DesktopSplitViewProps {
+  documents: Document[];
+  selectedDoc: Document | null;
+  editTitle: string;
+  editContent: string;
+  searchQuery: string;
+  filteredDocuments: Document[];
+  groupedDocuments: Record<string, Document[]>;
+  sortedDates: string[];
+  isCreateDialogOpen: boolean;
+  newDocTitle: string;
+  onSearchQueryChange: (query: string) => void;
+  onCreateDialogOpenChange: (open: boolean) => void;
+  onNewDocTitleChange: (title: string) => void;
+  onCreateDocument: () => void;
+  onSelectDocument: (doc: Document) => void;
+  onEditTitleChange: (title: string) => void;
+  onEditContentChange: (content: string) => void;
+  onSaveDocument: () => void;
+  onDeleteDocument: (id: number) => void;
+}
+
+function DesktopSplitView({
+  documents,
+  selectedDoc,
+  editTitle,
+  editContent,
+  searchQuery,
+  filteredDocuments,
+  groupedDocuments,
+  sortedDates,
+  isCreateDialogOpen,
+  newDocTitle,
+  onSearchQueryChange,
+  onCreateDialogOpenChange,
+  onNewDocTitleChange,
+  onCreateDocument,
+  onSelectDocument,
+  onEditTitleChange,
+  onEditContentChange,
+  onSaveDocument,
+  onDeleteDocument,
+}: DesktopSplitViewProps) {
+  return (
+    <div className="hidden md:flex h-full">
+      {/* 左侧：文档列表 */}
+      <div className="w-80 border-r overflow-y-auto flex-shrink-0">
+        {/* 标题和新建按钮 */}
+        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-background z-10">
+          <h2 className="text-lg font-semibold">知识库</h2>
+
+          {/* 新建文档对话框 */}
+          <Dialog open={isCreateDialogOpen} onOpenChange={onCreateDialogOpenChange}>
+            <DialogTrigger asChild>
+              <Button size="icon" className="h-8 w-8">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>创建文档</DialogTitle>
+              </DialogHeader>
+
+              {/* 创建文档表单 */}
+              <div className="space-y-4 py-4">
+                {/* 标题输入框 */}
+                <div>
+                  <label className="text-sm font-medium mb-1 block">标题</label>
+                  <Input
+                    value={newDocTitle}
+                    onChange={(e) => onNewDocTitleChange(e.target.value)}
+                    placeholder="输入文档标题"
+                  />
+                </div>
+
+                {/* 创建按钮 */}
+                <Button onClick={onCreateDocument} className="w-full">
+                  创建
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* 搜索栏 */}
+        <div className="p-4 pb-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="搜索文档标题或内容..."
+              value={searchQuery}
+              onChange={(e) => onSearchQueryChange(e.target.value)}
+              className="pl-10"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                onClick={() => onSearchQueryChange("")}
+              >
+                ×
+              </Button>
+            )}
+          </div>
+          {searchQuery && (
+            <p className="text-xs text-muted-foreground mt-1">
+              找到 {filteredDocuments.length} 个文档
+              {filteredDocuments.length === 0 && "，试试其他关键词吧"}
+            </p>
+          )}
+        </div>
+
+        {/* 文档列表 */}
+        <div className="p-6 space-y-6">
+          {documents.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-8">
+              还没有文档，点击右上角创建
+            </p>
+          ) : (
+            sortedDates.map((date) => {
+              const dateDocs = groupedDocuments[date];
+              const dateObj = new Date(date + "T00:00:00");
+              const today = new Date();
+              const yesterday = new Date(today);
+              yesterday.setDate(yesterday.getDate() - 1);
+
+              let dateLabel: string;
+              if (dateObj.toDateString() === today.toDateString()) {
+                dateLabel = "今天";
+              } else if (dateObj.toDateString() === yesterday.toDateString()) {
+                dateLabel = "昨天";
+              } else {
+                dateLabel = format(dateObj, "yyyy 年 MM 月 dd 日");
+              }
+
+              return (
+                <div key={date}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+                      {dateLabel} · {dateDocs.length} 个文档
+                    </span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+
+                  <div className="space-y-2">
+                    {dateDocs.map((doc) => (
+                      <Card
+                        key={doc.id}
+                        className={cn(
+                          "cursor-pointer hover:bg-accent/15 transition-colors border",
+                          selectedDoc?.id === doc.id ? "bg-accent/20" : ""
+                        )}
+                        onClick={() => onSelectDocument(doc)}
+                      >
+                        <CardContent className="p-3">
+                          <h3 className="font-medium truncate">{doc.title}</h3>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {format(new Date(doc.updated_at), "HH:mm")}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* 右侧：编辑器 */}
+      <div className="flex-1 flex flex-col overflow-hidden p-6">
+        {selectedDoc ? (
+          <div className="h-full flex flex-col border rounded-lg">
+            <div className="flex items-center justify-between p-4 border-b">
+              <Input
+                value={editTitle}
+                onChange={(e) => onEditTitleChange(e.target.value)}
+                className="text-xl font-semibold border-none focus-visible:ring-0 px-0"
+              />
+              <div className="flex gap-2">
+                <Button onClick={onSaveDocument}>保存</Button>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  onClick={() => onDeleteDocument(selectedDoc.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <Textarea
+              value={editContent}
+              onChange={(e) => onEditContentChange(e.target.value)}
+              placeholder="开始编写文档内容..."
+              className="flex-1 resize-none border-0 focus-visible:ring-0 p-4 text-base leading-relaxed"
+            />
+          </div>
+        ) : (
+          <div className="h-full flex items-center justify-center text-muted-foreground border rounded-lg p-8">
+            <p>选择或创建一个文档开始编写</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: KnowledgePageProps) {
   // ============================================
   // 状态管理
@@ -206,177 +421,6 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
   // ============================================
   // 渲染页面
   // ============================================
-  
-  // ============================================
-  // 桌面端：左右分栏布局（列表 + 编辑器同时显示）
-  // ============================================
-  const DesktopSplitView = () => (
-    <div className="hidden md:flex h-full">
-      {/* 左侧：文档列表 */}
-      <div className="w-80 border-r overflow-y-auto flex-shrink-0">
-        {/* 标题和新建按钮 */}
-        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-background z-10">
-          <h2 className="text-lg font-semibold">知识库</h2>
-
-          {/* 新建文档对话框 */}
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="icon" className="h-8 w-8">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>创建文档</DialogTitle>
-              </DialogHeader>
-
-              {/* 创建文档表单 */}
-              <div className="space-y-4 py-4">
-                {/* 标题输入框 */}
-                <div>
-                  <label className="text-sm font-medium mb-1 block">标题</label>
-                  <Input
-                    value={newDocTitle}
-                    onChange={(e) => setNewDocTitle(e.target.value)}
-                    placeholder="输入文档标题"
-                  />
-                </div>
-
-                {/* 创建按钮 */}
-                <Button onClick={handleCreateDocument} className="w-full">
-                  创建
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {/* 搜索栏 */}
-        <div className="p-4 pb-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="搜索文档标题或内容..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-            {searchQuery && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-                onClick={() => setSearchQuery("")}
-              >
-                ×
-              </Button>
-            )}
-          </div>
-          {searchQuery && (
-            <p className="text-xs text-muted-foreground mt-1">
-              找到 {filteredDocuments.length} 个文档
-              {filteredDocuments.length === 0 && "，试试其他关键词吧"}
-            </p>
-          )}
-        </div>
-
-        {/* 文档列表 */}
-        <div className="p-6 space-y-6">
-          {documents.length === 0 ? (
-            <p className="text-muted-foreground text-sm text-center py-8">
-              还没有文档，点击右上角创建
-            </p>
-          ) : (
-            sortedDates.map((date) => {
-              const dateDocs = groupedDocuments[date];
-              const dateObj = new Date(date + "T00:00:00");
-              const today = new Date();
-              const yesterday = new Date(today);
-              yesterday.setDate(yesterday.getDate() - 1);
-
-              let dateLabel: string;
-              if (dateObj.toDateString() === today.toDateString()) {
-                dateLabel = "今天";
-              } else if (dateObj.toDateString() === yesterday.toDateString()) {
-                dateLabel = "昨天";
-              } else {
-                dateLabel = format(dateObj, "yyyy 年 MM 月 dd 日");
-              }
-
-              return (
-                <div key={date}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="flex-1 h-px bg-border" />
-                    <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
-                      {dateLabel} · {dateDocs.length} 个文档
-                    </span>
-                    <div className="flex-1 h-px bg-border" />
-                  </div>
-
-                  <div className="space-y-2">
-                    {dateDocs.map((doc) => (
-                      <Card
-                        key={doc.id}
-                        className={cn(
-                          "cursor-pointer hover:bg-accent/15 transition-colors border",
-                          selectedDoc?.id === doc.id ? "bg-accent/20" : ""
-                        )}
-                        onClick={() => handleSelectDocument(doc)}
-                      >
-                        <CardContent className="p-3">
-                          <h3 className="font-medium truncate">{doc.title}</h3>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {format(new Date(doc.updated_at), "HH:mm")}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-
-      {/* 右侧：编辑器 */}
-      <div className="flex-1 flex flex-col overflow-hidden p-6">
-        {selectedDoc ? (
-          <div className="h-full flex flex-col border rounded-lg">
-            <div className="flex items-center justify-between p-4 border-b">
-              <Input
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                className="text-xl font-semibold border-none focus-visible:ring-0 px-0"
-              />
-              <div className="flex gap-2">
-                <Button onClick={handleSaveDocument}>保存</Button>
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  onClick={() => handleDeleteDocument(selectedDoc.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <Textarea
-              value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              placeholder="开始编写文档内容..."
-              className="flex-1 resize-none border-0 focus-visible:ring-0 p-4 text-base leading-relaxed"
-            />
-          </div>
-        ) : (
-          <div className="h-full flex items-center justify-center text-muted-foreground border rounded-lg p-8">
-            <p>选择或创建一个文档开始编写</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
 
   // ============================================
   // 移动端：列表/详情分离布局
@@ -384,26 +428,29 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
 
   // 监听 Android 硬件返回键（仅编辑模式下）
   useEffect(() => {
-    if (!isEditing) return;
+    if (isEditing) {
+      let cancelled = false;
+      let listener: PluginListener | null = null;
 
-    let listener: PluginListener | null = null;
-    let cancelled = false;
+      onBackButtonPress(() => {
+        handleBackToList();
+      }).then(fn => {
+        if (cancelled) {
+          fn.unregister(); // 已取消则立即清理
+        } else {
+          listener = fn;
+        }
+      })
+      .catch(error => {
+        console.error("捕捉到错误：", error);
+      });
 
-    onBackButtonPress(() => {
-      handleBackToList();
-    }).then(fn => {
-      if (cancelled) {
-        fn.unregister(); // 已取消则立即移除
-      } else {
-        listener = fn;
-      }
-    });
-
-    return () => {
-      cancelled = true;
-      listener?.unregister();
-    };
-  }, [isEditing, handleBackToList]);
+      return () => {
+        cancelled = true;
+        listener?.unregister();
+      };
+    }
+  }, [isEditing]);
 
   // 编辑视图（仅移动端）
   if (isEditing && selectedDoc) {
@@ -456,7 +503,27 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
 
         {/* 桌面端：在编辑视图时也显示分栏布局 */}
         <div className="hidden md:block h-full">
-          <DesktopSplitView />
+          <DesktopSplitView
+            documents={documents}
+            selectedDoc={selectedDoc}
+            editTitle={editTitle}
+            editContent={editContent}
+            searchQuery={searchQuery}
+            filteredDocuments={filteredDocuments}
+            groupedDocuments={groupedDocuments}
+            sortedDates={sortedDates}
+            isCreateDialogOpen={isCreateDialogOpen}
+            newDocTitle={newDocTitle}
+            onSearchQueryChange={setSearchQuery}
+            onCreateDialogOpenChange={setIsCreateDialogOpen}
+            onNewDocTitleChange={setNewDocTitle}
+            onCreateDocument={handleCreateDocument}
+            onSelectDocument={handleSelectDocument}
+            onEditTitleChange={setEditTitle}
+            onEditContentChange={setEditContent}
+            onSaveDocument={handleSaveDocument}
+            onDeleteDocument={handleDeleteDocument}
+          />
         </div>
       </>
     );
@@ -599,7 +666,27 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
 
       {/* 桌面端：始终显示分栏布局 */}
       <div className="hidden md:block h-full">
-        <DesktopSplitView />
+        <DesktopSplitView
+          documents={documents}
+          selectedDoc={selectedDoc}
+          editTitle={editTitle}
+          editContent={editContent}
+          searchQuery={searchQuery}
+          filteredDocuments={filteredDocuments}
+          groupedDocuments={groupedDocuments}
+          sortedDates={sortedDates}
+          isCreateDialogOpen={isCreateDialogOpen}
+          newDocTitle={newDocTitle}
+          onSearchQueryChange={setSearchQuery}
+          onCreateDialogOpenChange={setIsCreateDialogOpen}
+          onNewDocTitleChange={setNewDocTitle}
+          onCreateDocument={handleCreateDocument}
+          onSelectDocument={handleSelectDocument}
+          onEditTitleChange={setEditTitle}
+          onEditContentChange={setEditContent}
+          onSaveDocument={handleSaveDocument}
+          onDeleteDocument={handleDeleteDocument}
+        />
       </div>
     </>
   );
