@@ -322,9 +322,11 @@ export function CalendarMonthView({
                 // 基础样式：相对定位、垂直布局、内边距、圆角、边框、过渡效果
                 "relative flex flex-col items-start justify-start p-2 rounded-md border transition-all hover:bg-accent/15 min-h-[37px]",
                 // 非当前月份的日期：灰色文字、浅灰色背景
-                !isCurrentMonth && "text-muted-foreground bg-muted/30",
+                !isCurrentMonth && !mobile && "text-muted-foreground bg-muted/30",
+                !isCurrentMonth && mobile && "text-muted-foreground bg-muted/60",
                 // 选中的日期：主色边框、强调背景
-                isSelected && "ring-1 ring-primary bg-accent/20",
+                isSelected && !mobile && "ring-1 ring-primary bg-accent/20",
+                isSelected && mobile && "ring-2 ring-primary bg-accent/20",
                 // 今天：主色背景、主色边框
                 isToday && "border-2 border-accent",
                 // 移动端：减小内边距

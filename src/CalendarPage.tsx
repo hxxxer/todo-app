@@ -436,7 +436,8 @@ export function CalendarPage({ onNavigateToKnowledge }: CalendarPageProps) {
                 // 待办卡片列表
                 todos.map((todo) => (
                   <Card key={todo.id} className={cn(
-                    todo.completed ? "opacity-60 grayscale" : ""
+                    todo.completed ? "opacity-60 grayscale" : "", 
+                    "cursor-pointer border"
                   )}>
                     <CardContent className="p-4 space-y-2">
                       {/* 复选框和标题行 */}
