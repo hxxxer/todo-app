@@ -149,7 +149,9 @@ pub async fn test_webdav_connection(app_handle: AppHandle) -> Result<String, Str
 
     // 使用 PROPFIND 请求测试连接
     let client = reqwest::Client::new();
-    let url = format!("{}{}", config.server_url, config.remote_path.trim_start_matches('/'));
+    let server_url = config.server_url.trim_end_matches('/');
+    let remote_dir = config.remote_path.trim_start_matches('/').trim_end_matches('/');
+    let url = format!("{}/{}", server_url, remote_dir);
     
     let response = client
         .request(reqwest::Method::from_bytes(b"PROPFIND").unwrap(), &url)

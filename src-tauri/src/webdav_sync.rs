@@ -43,8 +43,9 @@ fn parse_backup_time(filename: &str) -> Option<NaiveDateTime> {
 
 /// 列出云端文件
 async fn list_remote_files(config: &WebDavConfig) -> Result<Vec<String>, String> {
+    let server_url = config.server_url.trim_end_matches('/');
     let remote_dir = config.remote_path.trim_start_matches('/').trim_end_matches('/');
-    let url = format!("{}{}/", config.server_url, remote_dir);
+    let url = format!("{}/{}/", server_url, remote_dir);
 
     let client = reqwest::Client::new();
     let resp = client
@@ -89,9 +90,10 @@ async fn rename_remote_file(
     old_name: &str,
     new_name: &str,
 ) -> Result<(), String> {
+    let server_url = config.server_url.trim_end_matches('/');
     let remote_dir = config.remote_path.trim_start_matches('/').trim_end_matches('/');
-    let old_url = format!("{}{}/{}", config.server_url, remote_dir, old_name);
-    let new_url = format!("{}{}/{}", config.server_url, remote_dir, new_name);
+    let old_url = format!("{}/{}/{}", server_url, remote_dir, old_name);
+    let new_url = format!("{}/{}/{}", server_url, remote_dir, new_name);
 
     let client = reqwest::Client::new();
     let resp = client
@@ -112,8 +114,9 @@ async fn rename_remote_file(
 
 /// 删除云端文件
 async fn delete_remote_file(config: &WebDavConfig, filename: &str) -> Result<(), String> {
+    let server_url = config.server_url.trim_end_matches('/');
     let remote_dir = config.remote_path.trim_start_matches('/').trim_end_matches('/');
-    let url = format!("{}{}/{}", config.server_url, remote_dir, filename);
+    let url = format!("{}/{}/{}", server_url, remote_dir, filename);
 
     let client = reqwest::Client::new();
     let resp = client
@@ -177,11 +180,12 @@ pub async fn upload_to_webdav(app_handle: AppHandle) -> Result<String, String> {
     let file_content = fs::read(local_db_path)
         .map_err(|e| format!("读取本地数据库失败：{}", e))?;
 
+    let server_url = config.server_url.trim_end_matches('/');
     let remote_dir = config.remote_path.trim_start_matches('/').trim_end_matches('/');
     let client = reqwest::Client::new();
 
     // 检查云端是否存在 todo_app.db
-    let main_file_url = format!("{}/{}/todo_app.db", config.server_url, remote_dir);
+    let main_file_url = format!("{}/{}/todo_app.db", server_url, remote_dir);
     let check_resp = client
         .request(reqwest::Method::from_bytes(b"PROPFIND").unwrap(), &main_file_url)
         .basic_auth(&config.username, Some(&config.password))
@@ -204,7 +208,7 @@ pub async fn upload_to_webdav(app_handle: AppHandle) -> Result<String, String> {
     }
 
     // 上传新文件
-    let url = format!("{}/{}/todo_app.db", config.server_url, remote_dir);
+    let url = format!("{}/{}/todo_app.db", server_url, remote_dir);
 
     match client
         .put(&url)
@@ -237,8 +241,9 @@ pub async fn download_from_webdav(app_handle: AppHandle) -> Result<String, Strin
     }
 
     let local_db_path = config.local_db_path.as_ref().ok_or("本地数据库路径未知")?;
+    let server_url = config.server_url.trim_end_matches('/');
     let remote_dir = config.remote_path.trim_start_matches('/').trim_end_matches('/');
-    let url = format!("{}/{}/todo_app.db", config.server_url, remote_dir);
+    let url = format!("{}/{}/todo_app.db", server_url, remote_dir);
 
     // 创建 WebDAV 客户端并下载
     let client = reqwest::Client::new();
