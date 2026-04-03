@@ -103,6 +103,7 @@ export function AllTodosPage() {
       await updateTodo(
         editingTodoId,
         todo.title,
+        todo.start_time,
         todo.deadline || null,
         editNotesContent
       );
@@ -153,6 +154,13 @@ export function AllTodosPage() {
   // 获取排序后的日期列表
   const sortedDates = Object.keys(groupedTodos).sort((a, b) => {
     return new Date(b).getTime() - new Date(a).getTime();
+  });
+
+  // 对每天内的待办按开始时间排序
+  Object.keys(groupedTodos).forEach(date => {
+    groupedTodos[date].sort((a, b) => {
+      return a.start_time.localeCompare(b.start_time);
+    });
   });
 
   // ============================================
@@ -307,7 +315,15 @@ export function AllTodosPage() {
                           </Button>
                         </div>
 
-                        {/* 截止日期 */}
+                        {/* 开始时间 */}
+                        <p className={cn(
+                          "text-sm text-muted-foreground",
+                          todo.completed && "text-muted-foreground"
+                        )}>
+                          开始：{todo.start_time}
+                        </p>
+
+                        {/* 截止时间 */}
                         {todo.deadline && (
                           <p className={cn(
                             "text-sm text-muted-foreground",

@@ -9,7 +9,8 @@ export interface Todo {
   id: number;           // 待办 ID
   title: string;        // 标题
   date: string;         // 日期（YYYY-MM-DD 格式）
-  deadline: string | null;  // 截止日期
+  start_time: string;   // 开始时间（HH:mm 格式，24 小时制）
+  deadline: string | null;  // 截止时间（YYYY-MM-DD HH:mm 格式）
   notes: string | null;     // 备注
   completed: boolean;       // 是否已完成
   created_at: string;       // 创建时间
@@ -43,11 +44,12 @@ export async function initDb(): Promise<string> {
 export async function createTodo(
   title: string,
   date: string,
+  start_time: string,
   deadline?: string | null,
   notes?: string | null,
   completed?: boolean
 ): Promise<Todo> {
-  return invoke("create_todo", { title, date, deadline, notes, completed });
+  return invoke("create_todo", { title, date, startTime: start_time, deadline, notes, completed });
 }
 
 /**
@@ -63,11 +65,12 @@ export async function listTodos(date?: string | null): Promise<Todo[]> {
 export async function updateTodo(
   id: number,
   title?: string | null,
+  start_time?: string | null,
   deadline?: string | null,
   notes?: string | null,
   completed?: boolean | null
 ): Promise<void> {
-  return invoke("update_todo", { id, title, deadline, notes, completed });
+  return invoke("update_todo", { id, title, startTime: start_time, deadline, notes, completed });
 }
 
 /**

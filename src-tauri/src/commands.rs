@@ -18,6 +18,7 @@ pub struct Todo {
     pub id: i64,
     pub title: String,
     pub date: String,
+    pub start_time: String,
     pub deadline: Option<String>,
     pub notes: Option<String>,
     pub completed: bool,
@@ -59,11 +60,13 @@ impl AppState {
 }
 
 fn init_database(conn: &Connection) -> Result<(), DbError> {
+    // 创建表结构（最新版本）
     conn.execute(
         "CREATE TABLE IF NOT EXISTS todos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
             date TEXT NOT NULL,
+            start_time TEXT NOT NULL DEFAULT '09:00',
             deadline TEXT,
             notes TEXT,
             completed INTEGER NOT NULL DEFAULT 0,
@@ -71,22 +74,6 @@ fn init_database(conn: &Connection) -> Result<(), DbError> {
         )",
         [],
     )?;
-
-    let pragma_result: Result<Vec<String>, _> = conn
-        .prepare("PRAGMA table_info(todos)")
-        .and_then(|mut stmt| {
-            stmt.query_map([], |row| row.get::<_, String>(1))
-                .map(|rows| rows.filter_map(|r| r.ok()).collect())
-        });
-
-    if let Ok(columns) = pragma_result {
-        if !columns.contains(&"completed".to_string()) {
-            conn.execute(
-                "ALTER TABLE todos ADD COLUMN completed INTEGER NOT NULL DEFAULT 0",
-                [],
-            )?;
-        }
-    }
 
     // 创建 documents 表（存储文档内容）
     conn.execute(
@@ -100,56 +87,70 @@ fn init_database(conn: &Connection) -> Result<(), DbError> {
         [],
     )?;
 
-    // 使用 PRAGMA 检查 todo_documents 表结构
-    let table_exists: bool = conn.query_row(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='todo_documents'",
+    // 创建 todo_documents 表（关联待办和文档）
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS todo_documents (
+            todo_id INTEGER NOT NULL,
+            document_id INTEGER NOT NULL,
+            PRIMARY KEY (todo_id, document_id),
+            FOREIGN KEY (todo_id) REFERENCES todos(id) ON DELETE CASCADE,
+            FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+        )",
         [],
-        |_| Ok(true)
-    ).unwrap_or(false);
+    )?;
 
-    if table_exists {
-        // 检查表结构是否符合预期
-        let mut stmt = conn.prepare("PRAGMA table_info(todo_documents)")?;
-        let columns = stmt.query_map([], |row| {
-            Ok((
-                row.get::<_, String>(1)?, // name
-                row.get::<_, String>(2)?, // type
-                row.get::<_, i32>(3)?,    // notnull
-            ))
-        })?.collect::<Result<Vec<_>, _>>()?;
+    // 获取当前数据库版本
+    let current_version: i32 = conn
+        .pragma_query_value(None, "user_version", |row| row.get(0))
+        .unwrap_or(0);
 
-        let expected_columns = vec![
-            ("todo_id".to_string(), "INTEGER".to_string(), 1),
-            ("document_id".to_string(), "INTEGER".to_string(), 1),
-        ];
+    // 根据版本执行迁移
+    if current_version < 1 {
+        migrate_v0_to_v1(conn)?;
+        conn.pragma_update(None, "user_version", 1)
+            .map_err(|e| DbError::Database(e))?;
+    }
 
-        // 如果列数不匹配或列定义不匹配，则删除重建
-        if columns.len() != 2 || columns != expected_columns {
-            conn.execute("DROP TABLE todo_documents", [])?;
-            conn.execute(
-                "CREATE TABLE todo_documents (
-                    todo_id INTEGER NOT NULL,
-                    document_id INTEGER NOT NULL,
-                    PRIMARY KEY (todo_id, document_id),
-                    FOREIGN KEY (todo_id) REFERENCES todos(id) ON DELETE CASCADE,
-                    FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
-                )",
-                [],
-            )?;
-        }
-    } else {
-        // 表不存在，直接创建
+    Ok(())
+}
+
+/// 迁移 v0 → v1: 添加 start_time 列 + 迁移旧 deadline 数据
+fn migrate_v0_to_v1(conn: &Connection) -> Result<(), DbError> {
+    // 检查现有列
+    let columns: Vec<String> = conn
+        .prepare("PRAGMA table_info(todos)")?
+        .query_map([], |row| row.get(1))?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    // 添加 completed 列（如果不存在）
+    if !columns.contains(&"completed".to_string()) {
         conn.execute(
-            "CREATE TABLE todo_documents (
-                todo_id INTEGER NOT NULL,
-                document_id INTEGER NOT NULL,
-                PRIMARY KEY (todo_id, document_id),
-                FOREIGN KEY (todo_id) REFERENCES todos(id) ON DELETE CASCADE,
-                FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
-            )",
+            "ALTER TABLE todos ADD COLUMN completed INTEGER NOT NULL DEFAULT 0",
             [],
         )?;
     }
+
+    // 添加 start_time 列（如果不存在）
+    if !columns.contains(&"start_time".to_string()) {
+        conn.execute(
+            "ALTER TABLE todos ADD COLUMN start_time TEXT NOT NULL DEFAULT '09:00'",
+            [],
+        )?;
+    }
+
+    // 迁移旧 deadline 数据：从 "YYYY-MM-DD" 升级为 "YYYY-MM-DD 12:00"
+    // 只迁移不含时间的旧数据（不包含空格的 deadline）
+    conn.execute(
+        "UPDATE todos SET deadline = deadline || ' 12:00' WHERE deadline IS NOT NULL AND deadline NOT LIKE '% %'",
+        [],
+    )?;
+
+    // 为旧数据设置默认开始时间
+    conn.execute(
+        "UPDATE todos SET start_time = '09:00' WHERE start_time IS NULL OR start_time = ''",
+        [],
+    )?;
 
     Ok(())
 }
@@ -164,6 +165,7 @@ pub fn create_todo(
     state: tauri::State<AppState>,
     title: String,
     date: String,
+    start_time: String,
     deadline: Option<String>,
     notes: Option<String>,
     completed: Option<bool>,
@@ -172,8 +174,8 @@ pub fn create_todo(
     let now = Utc::now().to_rfc3339();
 
     db.execute(
-        "INSERT INTO todos (title, date, deadline, notes, completed, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-        params![title, date, deadline, notes, completed.unwrap_or(false), now],
+        "INSERT INTO todos (title, date, start_time, deadline, notes, completed, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        params![title, date, start_time, deadline, notes, completed.unwrap_or(false), now],
     )
     .map_err(|e| e.to_string())?;
 
@@ -183,6 +185,7 @@ pub fn create_todo(
         id,
         title,
         date,
+        start_time,
         deadline,
         notes,
         completed: completed.unwrap_or(false),
@@ -200,7 +203,7 @@ pub fn list_todos(state: tauri::State<AppState>, date: Option<String>) -> Result
     match &date {
         Some(d) => {
             let mut stmt = db
-                .prepare("SELECT id, title, date, deadline, notes, completed, created_at FROM todos WHERE date = ?1 ORDER BY id DESC")
+                .prepare("SELECT id, title, date, start_time, deadline, notes, completed, created_at FROM todos WHERE date = ?1 ORDER BY id DESC")
                 .map_err(|e| e.to_string())?;
             let todos = stmt
                 .query_map(params![d], |row| {
@@ -208,10 +211,11 @@ pub fn list_todos(state: tauri::State<AppState>, date: Option<String>) -> Result
                         id: row.get(0)?,
                         title: row.get(1)?,
                         date: row.get(2)?,
-                        deadline: row.get(3)?,
-                        notes: row.get(4)?,
-                        completed: row.get::<_, i32>(5)? != 0,
-                        created_at: row.get(6)?,
+                        start_time: row.get(3)?,
+                        deadline: row.get(4)?,
+                        notes: row.get(5)?,
+                        completed: row.get::<_, i32>(6)? != 0,
+                        created_at: row.get(7)?,
                     })
                 })
                 .map_err(|e| e.to_string())?;
@@ -222,7 +226,7 @@ pub fn list_todos(state: tauri::State<AppState>, date: Option<String>) -> Result
         }
         None => {
             let mut stmt = db
-                .prepare("SELECT id, title, date, deadline, notes, completed, created_at FROM todos ORDER BY id DESC")
+                .prepare("SELECT id, title, date, start_time, deadline, notes, completed, created_at FROM todos ORDER BY id DESC")
                 .map_err(|e| e.to_string())?;
             let todos = stmt
                 .query_map([], |row| {
@@ -230,10 +234,11 @@ pub fn list_todos(state: tauri::State<AppState>, date: Option<String>) -> Result
                         id: row.get(0)?,
                         title: row.get(1)?,
                         date: row.get(2)?,
-                        deadline: row.get(3)?,
-                        notes: row.get(4)?,
-                        completed: row.get::<_, i32>(5)? != 0,
-                        created_at: row.get(6)?,
+                        start_time: row.get(3)?,
+                        deadline: row.get(4)?,
+                        notes: row.get(5)?,
+                        completed: row.get::<_, i32>(6)? != 0,
+                        created_at: row.get(7)?,
                     })
                 })
                 .map_err(|e| e.to_string())?;
@@ -252,6 +257,7 @@ pub fn update_todo(
     state: tauri::State<AppState>,
     id: i64,
     title: Option<String>,
+    start_time: Option<String>,
     deadline: Option<String>,
     notes: Option<String>,
     completed: Option<bool>,
@@ -260,6 +266,11 @@ pub fn update_todo(
 
     if let Some(t) = title {
         db.execute("UPDATE todos SET title = ?1 WHERE id = ?2", params![t, id])
+            .map_err(|e| e.to_string())?;
+    }
+
+    if let Some(s) = start_time {
+        db.execute("UPDATE todos SET start_time = ?1 WHERE id = ?2", params![s, id])
             .map_err(|e| e.to_string())?;
     }
 
@@ -310,7 +321,7 @@ pub fn get_all_todos_ordered(state: tauri::State<AppState>) -> Result<Vec<Todo>,
     let mut result = Vec::new();
 
     let mut stmt = db
-        .prepare("SELECT id, title, date, deadline, notes, completed, created_at FROM todos ORDER BY date DESC, id DESC")
+        .prepare("SELECT id, title, date, start_time, deadline, notes, completed, created_at FROM todos ORDER BY date DESC, id DESC")
         .map_err(|e| e.to_string())?;
 
     let todos = stmt
@@ -319,10 +330,11 @@ pub fn get_all_todos_ordered(state: tauri::State<AppState>) -> Result<Vec<Todo>,
                 id: row.get(0)?,
                 title: row.get(1)?,
                 date: row.get(2)?,
-                deadline: row.get(3)?,
-                notes: row.get(4)?,
-                completed: row.get::<_, i32>(5)? != 0,
-                created_at: row.get(6)?,
+                start_time: row.get(3)?,
+                deadline: row.get(4)?,
+                notes: row.get(5)?,
+                completed: row.get::<_, i32>(6)? != 0,
+                created_at: row.get(7)?,
             })
         })
         .map_err(|e| e.to_string())?;

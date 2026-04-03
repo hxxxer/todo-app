@@ -62,7 +62,8 @@ export function CalendarPage({ onNavigateToKnowledge }: CalendarPageProps) {
 
   // 新建待办的表单数据
   const [newTodoTitle, setNewTodoTitle] = useState("");        // 标题
-  const [newTodoDeadline, setNewTodoDeadline] = useState("");  // 截止日期
+  const [newTodoStartTime, setNewTodoStartTime] = useState("");  // 开始时间（HH:mm）
+  const [newTodoDeadline, setNewTodoDeadline] = useState("");  // 截止时间（YYYY-MM-DDTHH:mm）
   const [newTodoNotes, setNewTodoNotes] = useState("");        // 备注
 
   // 编辑备注对话框状态
@@ -122,18 +123,27 @@ export function CalendarPage({ onNavigateToKnowledge }: CalendarPageProps) {
   // ============================================
   // 创建待办
   const handleCreateTodo = async () => {
-    if (!selectedDate || !newTodoTitle.trim()) return;
+    if (!selectedDate || !newTodoTitle.trim() || !newTodoStartTime.trim()) return;
 
     const dateStr = format(selectedDate, "yyyy-MM-dd");
+    
+    // 将截止时间从 "YYYY-MM-DDTHH:mm" 转换为 "YYYY-MM-DD HH:mm"
+    let deadlineStr: string | null = null;
+    if (newTodoDeadline) {
+      deadlineStr = newTodoDeadline.replace("T", " ");
+    }
+    
     try {
       const todo = await createTodo(
         newTodoTitle,
         dateStr,
-        newTodoDeadline || null,
+        newTodoStartTime,
+        deadlineStr,
         newTodoNotes || null
       );
       setAllTodos([todo, ...allTodos]);  // 更新所有待办列表
       setNewTodoTitle("");
+      setNewTodoStartTime("");
       setNewTodoDeadline("");
       setNewTodoNotes("");
       setIsCreateDialogOpen(false);
@@ -171,6 +181,7 @@ export function CalendarPage({ onNavigateToKnowledge }: CalendarPageProps) {
       await updateTodo(
         editingTodoId,
         todo.title,
+        todo.start_time,
         todo.deadline || null,
         editNotesContent
       );
@@ -360,17 +371,27 @@ export function CalendarPage({ onNavigateToKnowledge }: CalendarPageProps) {
                         placeholder="输入待办标题"
                       />
                     </div>
-                    
-                    {/* 截止日期输入框 */}
+
+                    {/* 开始时间输入框 */}
                     <div>
-                      <label className="text-sm font-medium mb-1 block">截止日期</label>
+                      <label className="text-sm font-medium mb-1 block">开始时间 *</label>
                       <Input
-                        type="date"
+                        type="time"
+                        value={newTodoStartTime}
+                        onChange={(e) => setNewTodoStartTime(e.target.value)}
+                      />
+                    </div>
+
+                    {/* 截止时间输入框 */}
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">截止时间</label>
+                      <Input
+                        type="datetime-local"
                         value={newTodoDeadline}
                         onChange={(e) => setNewTodoDeadline(e.target.value)}
                       />
                     </div>
-                    
+
                     {/* 备注输入框 */}
                     <div>
                       <label className="text-sm font-medium mb-1 block">备注</label>
@@ -381,7 +402,7 @@ export function CalendarPage({ onNavigateToKnowledge }: CalendarPageProps) {
                         rows={3}
                       />
                     </div>
-                    
+
                     {/* 创建按钮 */}
                     <Button onClick={handleCreateTodo} className="w-full">
                       创建
@@ -428,7 +449,12 @@ export function CalendarPage({ onNavigateToKnowledge }: CalendarPageProps) {
                         </Button>
                       </div>
 
-                      {/* 截止日期 */}
+                      {/* 开始时间 */}
+                      <p className="text-sm text-muted-foreground">
+                        开始：{todo.start_time}
+                      </p>
+
+                      {/* 截止时间 */}
                       {todo.deadline && (
                         <p className="text-sm text-muted-foreground">
                           截止：{todo.deadline}
@@ -558,11 +584,21 @@ export function CalendarPage({ onNavigateToKnowledge }: CalendarPageProps) {
                         />
                       </div>
 
-                      {/* 截止日期输入框 */}
+                      {/* 开始时间输入框 */}
                       <div>
-                        <label className="text-sm font-medium mb-1 block">截止日期</label>
+                        <label className="text-sm font-medium mb-1 block">开始时间 *</label>
                         <Input
-                          type="date"
+                          type="time"
+                          value={newTodoStartTime}
+                          onChange={(e) => setNewTodoStartTime(e.target.value)}
+                        />
+                      </div>
+
+                      {/* 截止时间输入框 */}
+                      <div>
+                        <label className="text-sm font-medium mb-1 block">截止时间</label>
+                        <Input
+                          type="datetime-local"
                           value={newTodoDeadline}
                           onChange={(e) => setNewTodoDeadline(e.target.value)}
                         />
@@ -626,7 +662,12 @@ export function CalendarPage({ onNavigateToKnowledge }: CalendarPageProps) {
                             </Button>
                           </div>
 
-                          {/* 截止日期 */}
+                          {/* 开始时间 */}
+                          <p className="text-sm text-muted-foreground">
+                            开始：{todo.start_time}
+                          </p>
+
+                          {/* 截止时间 */}
                           {todo.deadline && (
                             <p className="text-sm text-muted-foreground">
                               截止：{todo.deadline}
