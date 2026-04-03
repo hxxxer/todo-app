@@ -38,10 +38,13 @@ export function AllTodosPage() {
   // 是否隐藏已完成
   const [hideCompleted, setHideCompleted] = useState(true);
 
-  // 编辑备注对话框状态
-  const [isEditNotesDialogOpen, setIsEditNotesDialogOpen] = useState(false);
-  const [editingTodoId, setEditingTodoId] = useState<number | null>(null);
-  const [editNotesContent, setEditNotesContent] = useState("");
+  // 编辑待办对话框状态
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editStartTime, setEditStartTime] = useState("");
+  const [editDeadline, setEditDeadline] = useState("");
+  const [editNotes, setEditNotes] = useState("");
 
   // ============================================
   // 数据加载
@@ -85,39 +88,49 @@ export function AllTodosPage() {
     }
   };
 
-  // 打开编辑备注对话框
-  const handleOpenEditNotes = (todo: Todo) => {
-    setEditingTodoId(todo.id);
-    setEditNotesContent(todo.notes || "");
-    setIsEditNotesDialogOpen(true);
+  // 打开编辑待办对话框
+  const handleOpenEdit = (todo: Todo) => {
+    setEditingTodo(todo);
+    setEditTitle(todo.title);
+    setEditStartTime(todo.start_time);
+    // deadline 从 "YYYY-MM-DD HH:mm" 转为 "YYYY-MM-DDTHH:mm"
+    setEditDeadline(todo.deadline ? todo.deadline.replace(" ", "T") : "");
+    setEditNotes(todo.notes || "");
+    setIsEditDialogOpen(true);
   };
 
-  // 保存备注
-  const handleSaveNotes = async () => {
-    if (!editingTodoId) return;
+  // 保存编辑
+  const handleSaveEdit = async () => {
+    if (!editingTodo || !editTitle.trim() || !editStartTime.trim()) return;
 
     try {
-      const todo = todos.find(t => t.id === editingTodoId);
-      if (!todo) return;
+      const deadlineStr = editDeadline ? editDeadline.replace("T", " ") : null;
 
       await updateTodo(
-        editingTodoId,
-        todo.title,
-        todo.start_time,
-        todo.deadline || null,
-        editNotesContent
+        editingTodo.id,
+        editTitle,
+        editStartTime,
+        deadlineStr,
+        editNotes || null
       );
+
+      const updatedTodo = {
+        ...editingTodo,
+        title: editTitle,
+        start_time: editStartTime,
+        deadline: deadlineStr,
+        notes: editNotes || null
+      };
 
       // 更新待办列表
       setTodos(todos.map(t =>
-        t.id === editingTodoId ? { ...t, notes: editNotesContent || null } : t
+        t.id === editingTodo.id ? updatedTodo : t
       ));
 
-      setIsEditNotesDialogOpen(false);
-      setEditingTodoId(null);
-      setEditNotesContent("");
+      setIsEditDialogOpen(false);
+      setEditingTodo(null);
     } catch (error) {
-      console.error("保存备注失败:", error);
+      console.error("保存失败:", error);
     }
   };
 
@@ -347,8 +360,8 @@ export function AllTodosPage() {
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6 absolute right-0 top-0"
-                            onClick={() => handleOpenEditNotes(todo)}
-                            title="编辑备注"
+                            onClick={() => handleOpenEdit(todo)}
+                            title="编辑待办"
                           >
                             <Pencil className="h-3 w-3" />
                           </Button>
@@ -363,30 +376,61 @@ export function AllTodosPage() {
         </div>
       )}
 
-      {/* ========== 编辑备注对话框 ========== */}
-      <Dialog open={isEditNotesDialogOpen} onOpenChange={setIsEditNotesDialogOpen}>
+      {/* ========== 编辑待办对话框 ========== */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>编辑备注</DialogTitle>
+            <DialogTitle>编辑待办</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {/* 标题 */}
             <div>
-              <label className="text-sm font-medium mb-1 block">备注内容</label>
-              <Textarea
-                value={editNotesContent}
-                onChange={(e) => setEditNotesContent(e.target.value)}
-                placeholder="输入备注内容..."
-                className="min-h-[120px]"
-                autoFocus
+              <label className="text-sm font-medium mb-1 block">标题</label>
+              <Input
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                placeholder="输入待办标题"
               />
             </div>
 
+            {/* 开始时间 */}
+            <div>
+              <label className="text-sm font-medium mb-1 block">开始时间 *</label>
+              <Input
+                type="time"
+                value={editStartTime}
+                onChange={(e) => setEditStartTime(e.target.value)}
+              />
+            </div>
+
+            {/* 截止时间 */}
+            <div>
+              <label className="text-sm font-medium mb-1 block">截止时间</label>
+              <Input
+                type="datetime-local"
+                value={editDeadline}
+                onChange={(e) => setEditDeadline(e.target.value)}
+              />
+            </div>
+
+            {/* 备注 */}
+            <div>
+              <label className="text-sm font-medium mb-1 block">备注</label>
+              <Textarea
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                placeholder="输入备注信息"
+                rows={3}
+              />
+            </div>
+
+            {/* 按钮 */}
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsEditNotesDialogOpen(false)}>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                 取消
               </Button>
-              <Button onClick={handleSaveNotes}>
+              <Button onClick={handleSaveEdit}>
                 保存
               </Button>
             </div>

@@ -151,7 +151,7 @@ export default function App() {
             "text-xs text-muted-foreground text-center",
             !isCollapsed && "text-left"
           )}>
-            {!isCollapsed && "TodoApp v2.2.0"}  {/* 版本号（仅展开时显示） */}
+            {!isCollapsed && "TodoApp v2.2.1"}  {/* 版本号（仅展开时显示） */}
           </div>
         </div>
       </div>
@@ -183,5 +183,6 @@ export default function App() {
     </div>
   );
 }
+
 
 

@@ -643,11 +643,12 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
                           key={doc.id}
                           className={cn(
                             "cursor-pointer hover:bg-accent/15 transition-colors border",
-                            selectedDoc?.id === doc.id ? "bg-accent/20" : ""
+                            selectedDoc?.id === doc.id ? "bg-accent/20" : "", 
+                            "py-2"
                           )}
                           onClick={() => handleSelectDocument(doc)}
                         >
-                          <CardContent className="p-4">
+                          <CardContent className="py-2 px-4">
                             <h3 className="font-medium text-base">{doc.title}</h3>
                             <p className="text-xs text-muted-foreground mt-1">
                               {format(new Date(doc.updated_at), "yyyy-MM-dd HH:mm")}

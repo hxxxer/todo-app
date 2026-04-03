@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -63,11 +63,6 @@ export function CalendarMonthView({
   // currentMonth: 当前显示的月份
   const [currentMonth, setCurrentMonth] = useState<Date>(selectedDate || new Date());
 
-  // 触摸滑动相关（移动端切换月份）
-  const touchStartX = useRef<number>(0);
-  const touchStartY = useRef<number>(0);
-  const SWIPE_THRESHOLD = 50; // 滑动阈值（px）
-
   // 当选中的日期变化时，更新当前显示的月份
   // useEffect(() => {
   //   if (selectedDate) {
@@ -78,11 +73,123 @@ export function CalendarMonthView({
   // ============================================
   // 计算日历日期
   // ============================================
+  const touchStartX = useRef<number>(0);
+  const touchStartY = useRef<number>(0);
+  const isDragging = useRef<boolean>(false);
+  const calendarRef = useRef<HTMLDivElement>(null);
+
+  const SWIPE_THRESHOLD = 100;
+  const MAX_DRAG = 120;
+
+  const setTranslate = (x: number, animated: boolean, isExit = false) => {
+    const el = calendarRef.current;
+    if (!el) return;
+    
+    const curve = isExit
+      ? "cubic-bezier(0.23, 0.46, 0.52, 1)"      // ease-in-quad：开头快，飞出用
+      : "cubic-bezier(0.25, 0.46, 0.45, 0.94)"; // ease-out-quad：结尾缓，滑入用
+    const duration = isExit ? "0.38s" : "0.4s"; // 飞出更快
+
+    el.style.transition = animated ? `transform ${duration} ${curve}` : "none";
+    el.style.transform = x === 0 && !animated ? "" : `translateX(${x}px)`;
+  };
+
+  // 使用原生事件注册 touchmove，确保 preventDefault 生效
+  useEffect(() => {
+    const el = calendarRef.current;
+    if (!el) return;
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isDragging.current) return;
+      // 只有在事件可取消时才 preventDefault
+      if (e.cancelable) {
+        e.preventDefault();
+      }
+    };
+
+    el.addEventListener('touchmove', handleTouchMove, { passive: false });
+    return () => el.removeEventListener('touchmove', handleTouchMove);
+  }, []);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    isDragging.current = false;
+    setTranslate(0, false);
+    // 启用 GPU 加速
+    if (calendarRef.current) {
+      calendarRef.current.style.willChange = "transform";
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const diffX = e.touches[0].clientX - touchStartX.current;
+    const diffY = e.touches[0].clientY - touchStartY.current;
+
+    if (!isDragging.current) {
+      if (Math.abs(diffX) < 8 && Math.abs(diffY) < 8) return;
+      if (Math.abs(diffY) > Math.abs(diffX)) return;
+      isDragging.current = true;
+    }
+
+    const absX = Math.abs(diffX);
+    const sign = Math.sign(diffX);
+    // 橡皮筋：超出 MAX_DRAG 后增加阻力
+    const translated = absX <= MAX_DRAG
+      ? diffX
+      : sign * (MAX_DRAG + (absX - MAX_DRAG) * 0.4);
+
+    setTranslate(translated, false);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+
+    const diffX = touchStartX.current - e.changedTouches[0].clientX;
+    // diffX > 0: 向左拖（看下个月）
+    // diffX < 0: 向右拖（看上个月）
+
+    if (Math.abs(diffX) > SWIPE_THRESHOLD) {
+      const exitDirection = diffX > 0 ? -1 : 1;
+      const enterDirection = -exitDirection;
+
+      setTranslate(exitDirection * 300, true, true);
+
+      setTimeout(() => {
+        setCurrentMonth(prev =>
+          diffX > 0 ? addMonths(prev, 1) : subMonths(prev, 1)
+        );
+        setTranslate(enterDirection * 280, false);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setTranslate(0, true);
+            // 动画完成后释放 GPU 加速
+            if (calendarRef.current) {
+              calendarRef.current.style.willChange = "auto";
+            }
+          });
+        });
+      }, 220);
+    } else {
+      setTranslate(0, true);
+      // 回弹动画完成后释放 GPU 加速
+      setTimeout(() => {
+        if (calendarRef.current) {
+          calendarRef.current.style.willChange = "auto";
+        }
+      }, 400);
+    }
+  };
+
+  // ============================================
+  // 计算日历日期
+  // ============================================
   const monthStart = startOfMonth(currentMonth);  // 本月第一天
   const monthEnd = endOfMonth(currentMonth);      // 本月最后一天
   const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });  // 日历开始日期（周一）
   const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });        // 日历结束日期（周日）
-
+  
   // 生成日历所有日期
   const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
 
@@ -112,31 +219,6 @@ export function CalendarMonthView({
     const today = new Date();
     setCurrentMonth(today);
     onSelectDate(today);
-  };
-
-  // 触摸开始（移动端滑动切换月份）
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-  };
-
-  // 触摸结束（移动端滑动切换月份）
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    const endX = e.changedTouches[0].clientX;
-    const endY = e.changedTouches[0].clientY;
-    const diffX = touchStartX.current - endX;
-    const diffY = touchStartY.current - endY;
-
-    // 只有水平滑动距离大于阈值且大于垂直滑动距离时才触发
-    if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(diffX) > Math.abs(diffY)) {
-      if (diffX > 0) {
-        // 向左滑 → 下个月
-        handleNextMonth();
-      } else {
-        // 向右滑 → 上个月
-        handlePrevMonth();
-      }
-    }
   };
 
   // ============================================
@@ -218,8 +300,11 @@ export function CalendarMonthView({
         - touch-pan-y: 允许垂直滚动
       */}
       <div
+        ref={calendarRef}
         className="flex-1 grid grid-cols-7 grid-rows-6 gap-1.5 px-2 pb-2 min-h-0"
+        style={{ touchAction: "pan-y" }}
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
         {calendarDays.map((day) => {

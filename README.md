@@ -216,6 +216,14 @@ C:\Users\{用户名}\AppData\Roaming\com.tauri-app.todo-app\todo_app.db
 
 ## 📝 更新日志
 
+### v2.2.1
+- ✅ 移动端日历动态滑动切换月份：
+  - 单屏渲染 + 动画模拟，性能更优
+  - 跟手效果 + 橡皮筋阻力
+  - 双 easing curve 动画（飞出快、滑入缓）
+  - 优化 GPU 加速生命周期，避免内存泄漏
+  - 添加原生 touchmove 事件拦截
+
 ### v2.2.0
 - ✅ WebDAV 云端备份管理：
   - 上传时自动备份云端旧文件（重命名为 `todo_app-时间.db`）
