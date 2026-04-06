@@ -1,11 +1,12 @@
 # TodoApp
 
-一个基于 Tauri v2 + React 19 开发的桌面待办清单工具，集成了日历、待办管理和知识库三大核心功能。
+一个基于 Tauri v2 + React 19 开发的跨平台待办清单工具，集成了日历、待办管理和知识库三大核心功能。
 
-![版本](https://img.shields.io/badge/version-v2.0.0-blue)
+![版本](https://img.shields.io/badge/version-v2.2.1-blue)
 ![Tauri](https://img.shields.io/badge/Tauri-v2-blue)
 ![React](https://img.shields.io/badge/React-v19-blue)
 ![Rust](https://img.shields.io/badge/Rust-stable-orange)
+![平台](https://img.shields.io/badge/platform-Windows%20%7C%20Android-green)
 
 ## ✨ 功能特性
 
@@ -68,8 +69,9 @@
 
 ## TODO
 
-- [ ] 构建 Release APK
 - [ ] 添加移动端通知支持
+- [ ] 添加数据自动备份功能
+- [ ] 添加主题切换功能（深色/浅色）
 
 ## 📦 安装和编译
 
@@ -90,10 +92,7 @@ cd D:\DIY\tauri-app\todo-app
 ### 2. 安装依赖
 
 ```bash
-# 安装前端依赖
 pnpm install
-
-# Rust 依赖会在首次编译时自动安装
 ```
 
 ### 3. 开发模式运行
@@ -102,20 +101,15 @@ pnpm install
 pnpm tauri dev
 ```
 
-这会启动 Vite 开发服务器并自动重新加载更改。
-
 ### 4. 构建生产版本
 
 ```bash
 # Windows
 pnpm tauri build
 
-# 输出目录
-# - src-tauri/target/release/todo-app.exe
-# - src-tauri/target/release/bundle/msi/*.msi
+# Android
+pnpm tauri android build --apk
 ```
-
-构建完成后，安装包位于 `src-tauri/target/release/bundle/` 目录下。
 
 ## 📁 项目结构
 
@@ -125,8 +119,7 @@ todo-app/
 │   ├── components/               # React 组件
 │   │   ├── ui/                   # Shadcn/ui 基础组件
 │   │   ├── CalendarMonthView.tsx # 月视图日历组件
-│   │   ├── YearView.tsx          # 年视图日历组件
-│   │   └── DocumentSelectorDialog.tsx  # 文档选择器弹窗
+│   │   └── YearView.tsx          # 年视图日历组件
 │   ├── lib/                      # 工具库
 │   │   ├── commands.ts           # Tauri 命令调用
 │   │   └── utils.ts              # 工具函数
@@ -134,23 +127,18 @@ todo-app/
 │   ├── CalendarPage.tsx          # 日历页面
 │   ├── KnowledgePage.tsx         # 知识库页面
 │   ├── WebDavSettingsPage.tsx    # WebDAV 设置页面
-│   ├── MobileNavBar.tsx          # 移动端底部导航
-│   ├── App.tsx                   # 主应用组件
-│   └── index.css                 # 全局样式
+│   └── App.tsx                   # 主应用组件
 ├── src-tauri/                    # Rust 后端源代码
 │   ├── src/
 │   │   ├── commands.rs           # 待办相关命令
 │   │   ├── document_commands.rs  # 文档管理命令
+│   │   ├── webdav_sync.rs        # WebDAV 同步
 │   │   └── lib.rs                # 入口文件
-│   ├── capabilities/             # Tauri 权限配置
-│   ├── Cargo.toml                # Rust 依赖配置
-│   └── tauri.conf.json           # Tauri 配置
+│   └── capabilities/             # Tauri 权限配置
+├── CHANGELOG.md                  # 更新日志
 ├── ANDROID_BUILD.md              # Android 构建指南
-├── .gitignore                    # Git 忽略文件
-├── package.json                  # 前端依赖配置
-├── tsconfig.json                 # TypeScript 配置
-├── tailwind.config.js            # Tailwind CSS 配置
-└── README.md                     # 项目说明
+├── BUG_PATTERNS.md               # 常见 Bug 模式记录
+└── package.json                  # 前端依赖配置
 ```
 
 ## 💾 数据存储
@@ -214,92 +202,10 @@ C:\Users\{用户名}\AppData\Roaming\com.tauri-app.todo-app\todo_app.db
 4. 点击"创建"
 5. 在右侧编辑器中编写内容
 
-## 📝 更新日志
+## 📚 其它文档
 
-### v2.2.1
-- ✅ 移动端日历动态滑动切换月份：
-  - 单屏渲染 + 动画模拟，性能更优
-  - 跟手效果 + 橡皮筋阻力
-  - 双 easing curve 动画（飞出快、滑入缓）
-  - 优化 GPU 加速生命周期，避免内存泄漏
-  - 添加原生 touchmove 事件拦截
-
-### v2.2.0
-- ✅ WebDAV 云端备份管理：
-  - 上传时自动备份云端旧文件（重命名为 `todo_app-时间.db`）
-  - 云端最多保留 7 个历史版本
-  - 超过 7 个时自动删除最旧的备份
-  - 新增 WebDAV 操作：列出文件、重命名、删除
-
-### v2.1.0
-- ✅ 待办事项时间精度升级：
-  - 新增开始时间字段（必填，精度到分钟，24 小时制）
-  - 截止时间升级（从年月日升级为年月日时分）
-- ✅ 数据库版本管理：
-  - 使用 `PRAGMA user_version` 管理数据库版本
-  - 按需执行数据迁移，避免每次初始化都检查
-  - 旧数据自动迁移：deadline 添加 12:00，start_time 设置 09:00
-- ✅ UI 优化：
-  - 新建待办表单添加开始时间输入框
-  - 截止时间输入框升级为 datetime-local
-  - 待办卡片显示开始时间和截止时间
-  - 所有待办页面每天内的卡片按开始时间排序
-- ✅ 修复知识库页面输入时页面闪烁和内存泄漏问题
-- ✅ 移除 x86_64 架构支持，减小 APK 体积
-
-### v2.0.0
-- ✅ 添加 Android 移动端支持
-- ✅ 移动端底部导航组件
-- ✅ 响应式布局优化：
-  - 日历页面：移动端蓝色覆盖层 + 底部待办列表
-  - 知识库页面：移动端列表/详情分离布局
-  - 年视图：移动端 3 列，桌面端 4 列
-- ✅ 日历页面滑动切换月份功能
-- ✅ Android 硬件返回键监听（文档编辑页面）
-- ✅ 知识库页面搜索功能
-- ✅ WebDAV 设置页面移动端优化
-- ✅ 添加 @tauri-apps/plugin-app 依赖
-- ✅ 添加 Android 构建指南文档
-
-### v1.6.0
-- ✅ 添加 WebDAV 数据同步功能
-- ✅ 支持配置 WebDAV 服务器地址、账号、密码和远程路径
-- ✅ 支持上传/下载数据库文件
-- ✅ 支持连接测试
-- ✅ 下载前自动备份本地数据库
-- ✅ 新增 Label 组件
-- ✅ 优化 DialogTrigger 组件，支持 asChild 属性
-
-### v1.5.0
-- ✅ 关联表改为使用 `document_id`（更规范的外键关联）
-- ✅ 添加表结构自动检查，不正确时自动重建
-- ✅ 文档选择器改为使用 ID 传递
-- ✅ 移除外部编辑器功能（保留代码供将来扩展）
-
-### v1.4.2
-- ✅ 文档存储方式改回 SQLite 数据库（便于坚果云同步）
-- ✅ 添加 documents 表存储文档内容
-- ✅ 优化数据库表结构
-
-### v1.4.0
-- ✅ 添加编辑备注功能（两个页面）
-- ✅ 优化 UI 布局，删除和编辑按钮对齐
-
-### v1.3.0
-- ✅ 所有待办页面添加隐藏已完成功能
-- ✅ 知识库页面文档列表按时间排序和分组显示
-
-### v1.2.0
-- ✅ 添加年视图日历功能
-- ✅ 待办关联文档功能
-- ✅ 文档多选弹窗
-
-### v1.1.0
-- ✅ 知识库存储方式改为 .md 文件
-- ✅ 支持外部编辑器打开文档
-
-### v1.0.0
-- ✅ 初始版本发布
+- [更新日志](CHANGELOG.md) - 查看所有版本的更新记录
+- [Android 构建指南](ANDROID_BUILD.md) - Android 平台构建指南
 
 ## 📄 许可证
 

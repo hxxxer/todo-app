@@ -14,7 +14,7 @@ interface MobileNavBarProps {
  */
 export function MobileNavBar({ currentPage, onNavigate }: MobileNavBarProps) {
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-background border-t flex items-center justify-around z-50 pb-safe flex-shrink-0">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-background border-t flex items-center justify-around z-50 pb-safe">
       <MobileNavBarButton
         icon={CalendarIcon}
         label="日历"

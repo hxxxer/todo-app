@@ -46,6 +46,7 @@ android {
             isDebuggable = true
             isJniDebuggable = true
             isMinifyEnabled = false
+            applicationIdSuffix = ".debug"
             ndk {
                 abiFilters += listOf("arm64-v8a")
             }

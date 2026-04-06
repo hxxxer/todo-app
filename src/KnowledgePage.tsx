@@ -5,7 +5,7 @@
 // - 编辑视图：点击文档后进入编辑模式
 // ============================================
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -270,6 +270,11 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
   // 搜索关键词
   const [searchQuery, setSearchQuery] = useState("");
 
+  // 移动端：输入法键盘高度（用于动态调整编辑器高度）
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const initialHeightRef = useRef<number>(window.innerHeight);
+
   // ============================================
   // 数据加载
   // ============================================
@@ -492,12 +497,30 @@ export function KnowledgePage({ selectedDocumentId, onDocumentSelected }: Knowle
             </div>
           </div>
 
-          {/* 内容编辑区域：占满剩余空间，带边框和内边距 */}
+          {/* 内容编辑区域：占满剩余空间，输入法弹出时动态调整高度 */}
           <Textarea
+            ref={textareaRef}
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
+            onFocus={() => {
+              // 延迟 300ms 等待输入法弹出后再获取高度
+              setTimeout(() => {
+                const vp = window.visualViewport;
+                if (vp) {
+                  const diff = initialHeightRef.current - vp.height;
+                  console.log("Input Focus Check:", { initial: initialHeightRef.current, current: vp.height, diff });
+                  if (diff > 150) {
+                    setKeyboardHeight(diff);
+                  }
+                }
+              }, 1000);
+            }}
+            onBlur={() => setKeyboardHeight(0)}
             placeholder="开始编写文档内容..."
             className="flex-1 resize-none border-x border-b rounded-b-lg focus-visible:ring-0 p-3 text-base leading-relaxed"
+            style={{
+              marginBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : 0,
+            }}
           />
         </div>
 
